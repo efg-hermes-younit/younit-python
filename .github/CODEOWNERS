@@ -1,0 +1,18 @@
+# Code Owners
+# Each line is a file pattern followed by one or more owners.
+# Owners are automatically requested for review when someone opens a PR.
+
+# Global ownership — EFG Data Science team
+* @efg-hermes/data-science
+
+# Core SDK
+src/younit/ @efg-hermes/data-science
+
+# MCP server — extra scrutiny due to order-placement surface
+src/younit/mcp_server/ @efg-hermes/data-science
+
+# CI / release pipelines
+.github/ @efg-hermes/data-science
+
+# Security-sensitive files
+SECURITY.md @efg-hermes/data-science

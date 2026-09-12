@@ -1,0 +1,99 @@
+# EFG API Python — .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# uv
+uv.lock
+.uv/
+
+# Testing
+.tox/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml
+coverage/
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Docs
+docs/_build/
+site/
+
+# Distribution / packaging
+.Python
+develop-eggs/
+downloads/
+.eggs/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment files (NEVER commit credentials)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets
+*.pem
+# Exception: pinned TLS cert for prod identity host (broken chain workaround,
+# not a secret — public cert content). SDK depends on this file at runtime
+# for cert pinning. See src/younit/certs/efghermesone-identity.pem header.
+!src/younit/certs/*.pem
+*.key
+*.cert
+
+# Build artifacts
+*.whl
+*.tar.gz
+sbom*.json
+sigstore/

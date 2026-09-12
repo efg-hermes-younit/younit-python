@@ -1,0 +1,45 @@
+site_name: younit
+site_description: Official Python SDK and MCP server for the EFG ONE Trading API
+site_author: EFG Hermes
+repo_url: https://github.com/efg-hermes-younit/younit-python
+repo_name: efg-hermes-younit/younit-python
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - content.code.annotate
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Authentication: auth.md
+  - Trading Guide: trading.md
+  - MCP Server: mcp.md
+  - API Reference: reference.md
+  - Changelog: ../CHANGELOG.md
