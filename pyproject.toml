@@ -1,0 +1,157 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "younit"
+dynamic = ["version"]
+description = "Official Python SDK for the Younit API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "EFG Hermes Data Science Team" }]
+keywords = ["efg", "trading", "api", "sdk", "mcp", "egx", "egypt"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx[http2]>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "structlog>=24.1",
+    # mcp 2.x renamed FastMCP to MCPServer and changed other APIs — src/younit/mcp_server/server.py
+    # uses the v1 FastMCP API and needs migration before upgrading past mcp 2.0.
+    # See https://py.sdk.modelcontextprotocol.io/v2/migration/ for the migration guide when that work happens.
+    "mcp>=1.0,<2",
+    "lightstreamer-client-lib>=2.0",
+    "tzdata; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "respx>=0.21",
+    "pre-commit>=3.7",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.25",
+    "cyclonedx-bom>=4.4",
+]
+ai-demo = [
+    "anthropic>=1.2.0",
+    "openai>=3.6.0",
+    "python-dotenv>=1.2.2",
+]
+
+[project.scripts]
+younit-mcp = "younit.mcp_server.server:main"
+
+[project.urls]
+Homepage = "https://github.com/efg-hermes-younit/younit-python"
+Repository = "https://github.com/efg-hermes-younit/younit-python"
+Issues = "https://github.com/efg-hermes-younit/younit-python/issues"
+Changelog = "https://github.com/efg-hermes-younit/younit-python/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/younit/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/younit"]
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + formatter
+# ---------------------------------------------------------------------------
+[tool.ruff]
+src = ["src"]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # flake8-bandit (security)
+    "ANN", # flake8-annotations
+    "RUF", # ruff-specific
+]
+ignore = [
+    "S101",    # use of assert — allowed in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "ANN"]
+"examples/**" = ["ANN", "T20"]
+"scripts/**" = ["ANN", "T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["younit"]
+
+# ---------------------------------------------------------------------------
+# Mypy — strict type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+show_error_codes = true
+pretty = true
+exclude = ["tests/", "examples/", "scripts/", "docs/"]
+
+[[tool.mypy.overrides]]
+module = ["structlog.*", "mcp.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+addopts = [
+    "--strict-markers",
+    "-q",
+]
+markers = [
+    "integration: mark a test as an integration test (requires EFG_INTEGRATION_TESTS=true)",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/younit"]
+omit = [
+    "src/younit/mcp_server/*",
+    "*/__init__.py",
+]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@overload",
+]

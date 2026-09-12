@@ -1,0 +1,106 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # create GitHub Release
+  id-token: write   # OIDC trusted publishing
+
+jobs:
+  build:
+    name: Build Distribution
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - name: Generate SBOM
+        run: |
+          uv run cyclonedx-py environment \
+            --output-format json \
+            --output-file sbom-${{ steps.version.outputs.version }}.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+          path: |
+            dist/
+            sbom-*.json
+
+  sign-and-publish:
+    name: Sign & Publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/younit/
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+
+      - name: Sign distributions with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3
+        with:
+          inputs: |
+            dist/*.whl
+            dist/*.tar.gz
+
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  release:
+    name: Create GitHub Release
+    needs: [build, sign-and-publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+
+      - name: Extract changelog excerpt
+        id: changelog
+        run: |
+          awk '/^## \[${{ needs.build.outputs.version }}\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > release_notes.md
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.sigstore
+            sbom-*.json
