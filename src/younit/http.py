@@ -13,11 +13,9 @@ to the caller so they can verify via list_orders whether it landed.
 
 from __future__ import annotations
 
-import ssl
 import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -36,11 +34,6 @@ from younit.exceptions import (
 from younit.logging import get_logger
 
 _log = get_logger(__name__)
-
-# Pinned cert for the trading/identity host — see that file's header comment
-# for why (self-signed-in-chain error, confirmed via
-# scripts/test_ssl_http2_necessity.py) and for rotation instructions.
-_PINNED_CERT_PATH = Path(__file__).parent / "certs" / "efghermesone-identity.pem"
 
 # Methods that are safe to retry on transient errors
 _IDEMPOTENT_METHODS = frozenset({"GET", "DELETE", "HEAD", "OPTIONS"})
@@ -77,39 +70,27 @@ def build_default_headers(settings: Settings) -> dict[str, str]:
     }
 
 
-def _build_ssl_context() -> ssl.SSLContext:
-    """Build an SSL context pinned to the trading/identity host's known certificate.
-
-    Certificate verification stays ON (unlike a bare ``verify=False``): the
-    context trusts *only* the specific leaf certificate in
-    ``certs/efghermesone-identity.pem`` (see that file for why, and for
-    rotation instructions), so a different/attacker-controlled certificate
-    for this host would still be rejected.
-
-    Also sets SECLEVEL=1 for compatibility: some servers (e.g. staging
-    environments) only accept older cipher suites such as AES128-SHA which
-    Python's OpenSSL rejects at its default SECLEVEL=2. Setting SECLEVEL=1
-    enables those ciphers while keeping TLS 1.2 as the minimum protocol
-    version.
-    """
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-    ctx.verify_mode = ssl.CERT_REQUIRED
-    ctx.check_hostname = True
-    ctx.load_verify_locations(cafile=str(_PINNED_CERT_PATH))
-    # The pinned cert is a leaf, not a CA — without this flag OpenSSL still
-    # tries to build a full chain to a root and fails on the server's broken
-    # chain (self-signed cert in chain) before ever checking our pin. This
-    # flag (OpenSSL's X509_V_FLAG_PARTIAL_CHAIN) lets a match anywhere in the
-    # trust store, including the leaf itself, satisfy verification.
-    ctx.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
-    # SECLEVEL=1 allows legacy ciphers (e.g. AES128-SHA) required by some servers
-    ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
-    return ctx
-
-
 def build_httpx_client(settings: Settings) -> httpx.Client:
     """Construct the ``httpx.Client`` used by the SDK.
+
+    Uses httpx's standard default TLS verification (system CA trust store).
+    A pinned single-leaf-cert workaround was used here from 2026-08 to
+    2026-09-13 to route around what looked like a broken certificate chain
+    on the trading/identity host; live verification on 2026-09-13 confirmed
+    the server now sends a complete, valid chain and standard verification
+    works end-to-end (see diagnostics/tls_chain_report.py and
+    diagnostics/standard_trust_full_flow_test.py), so the pin was removed.
+    The retired pinned cert is kept at
+    diagnostics/efghermesone-identity-pinned-cert.pem as a rollback safety
+    net in case this regresses (e.g. load-balancer node inconsistency).
+
+    The old pinned context also set SECLEVEL=1 to allow legacy ciphers;
+    removed here too since the live prod flow succeeded without it (see
+    diagnostics/standard_trust_full_flow_test.py). NOTE: that comment
+    originally mentioned staging environments needing legacy ciphers,
+    which was not separately re-tested — if staging (via
+    ``_base_url_override``) ever fails TLS negotiation, this is the first
+    thing to suspect.
 
     Args:
         settings: The active SDK configuration.
@@ -128,7 +109,6 @@ def build_httpx_client(settings: Settings) -> httpx.Client:
     return httpx.Client(
         timeout=timeout,
         follow_redirects=True,
-        verify=_build_ssl_context(),
         # Cookies are enabled by default in httpx.Client
     )
 

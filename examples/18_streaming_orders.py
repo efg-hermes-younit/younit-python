@@ -24,7 +24,7 @@ import time
 
 from younit import Client, OrderUpdate
 
-SYMBOL = "EAST"
+SYMBOL = "CRST"
 STREAM_SECONDS = 120  # watch for this long after placing
 
 
@@ -52,7 +52,7 @@ with Client() as client:
     limit_price = round(quote.last * 0.95, 1)
     # limit_price = round(quote.max_price*0.995, 1)
     print(f"Placing LIMIT BUY: 1 x {SYMBOL} @ {limit_price:.2f} EGP (market {quote.last:.2f})\n")
-    order = client.buy_limit(SYMBOL, qty=1, price=limit_price)
+    order = client.buy_market(SYMBOL, qty=1)
     print(f"Order placed — orderId: {order.order_id}\n")
 
     print(f"Watching stream for {STREAM_SECONDS}s (Ctrl-C to stop early)...\n")

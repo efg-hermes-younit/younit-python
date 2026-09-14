@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ssl
-
 import httpx
 import pytest
 
@@ -17,9 +15,8 @@ from younit.exceptions import (
     Unauthorized,
 )
 from younit.http import (
-    _PINNED_CERT_PATH,
-    _build_ssl_context,
     build_default_headers,
+    build_httpx_client,
     raise_for_status,
 )
 
@@ -119,18 +116,26 @@ class TestBuildDefaultHeaders:
 
 
 class TestBuildSslContext:
-    """SSL verification must stay ON via a pinned cert, never disabled outright."""
+    """Standard TLS verification (no cert pinning) is used unconditionally."""
 
     def test_ssl_verify_and_http2_are_not_settings_fields(self) -> None:
         assert "ssl_verify" not in Settings.model_fields
         assert "http2" not in Settings.model_fields
 
-    def test_pinned_cert_file_exists(self) -> None:
-        assert _PINNED_CERT_PATH.is_file()
-        assert "BEGIN CERTIFICATE" in _PINNED_CERT_PATH.read_text()
+    def test_build_httpx_client_constructs_successfully(self) -> None:
+        """No pinned cert / custom SSL context is required — httpx's own
+        default (system CA trust store) is used, i.e. standard verification."""
+        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u")
+        client = build_httpx_client(s)
+        try:
+            assert isinstance(client, httpx.Client)
+        finally:
+            client.close()
 
-    def test_context_requires_verification(self) -> None:
-        ctx = _build_ssl_context()
-        assert ctx.verify_mode == ssl.CERT_REQUIRED
-        assert ctx.check_hostname is True
-        assert ctx.verify_flags & ssl.VERIFY_X509_PARTIAL_CHAIN
+    def test_no_pinning_symbols_remain(self) -> None:
+        """Regression guard: cert pinning was removed 2026-09-13; these
+        symbols should not reappear without deliberately updating this test."""
+        import younit.http as http_module
+
+        assert not hasattr(http_module, "_build_ssl_context")
+        assert not hasattr(http_module, "_PINNED_CERT_PATH")

@@ -18,7 +18,7 @@ Prerequisites:
 from younit import Client
 from younit.exceptions import APIError, InsufficientFunds, OrderRejected
 
-SYMBOL = "DEIN"
+SYMBOL = "CRST"
 QUANTITY = 1  # shares
 
 with Client() as client:
@@ -32,6 +32,9 @@ with Client() as client:
         )
         print(f"OK: Order submitted — orderId: {order.order_id}")
         print(f"    status: {order.status}")
+        # status_text is the real, populated status (status is reserved for
+        # unconfirmed numeric codes and is currently always None)
+        print(f"    status_text: {order.status_text}")
 
     except InsufficientFunds as exc:
         print(f"FAILED: Insufficient funds: {exc}")
