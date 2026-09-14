@@ -51,8 +51,7 @@ All safety controls are configured via environment variables — never in code.
 | `positions` | All open stock positions |
 | `position` | Single position by symbol |
 | `buying_power` | Available buying power for a stock |
-| `top_gainers` | Top gaining stocks today |
-| `top_losers` | Top losing stocks today |
+| `top_movers` | Full tradeable universe sorted by change %, gainers first (live, takes a few seconds) |
 | `trending_stocks` | Most active stocks |
 | `search_stocks` | Search stocks by ticker or name |
 | `get_order` | Fetch an order by ID |

@@ -90,6 +90,7 @@ Thumbs.db
 # removed 2026-09-13, see CHANGELOG.md); kept here only as rollback evidence.
 # See diagnostics/efghermesone-identity-pinned-cert.pem header.
 !diagnostics/*.pem
+diagnostics/
 *.key
 *.cert
 

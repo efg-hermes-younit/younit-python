@@ -16,6 +16,7 @@ import pytest
 from younit.mcp_server import server as mcp_server
 from younit.mcp_server.safety import SafetySettings
 from younit.models.orders import Order
+from younit.models.streaming import TopMover
 
 
 def _amend_order_fn():
@@ -23,6 +24,76 @@ def _amend_order_fn():
     tool = mcp_server.app._tool_manager.get_tool("amend_order")
     assert tool is not None
     return tool.fn
+
+
+class TestTopMoversTool:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+
+    def test_top_gainers_and_top_losers_are_not_registered(self) -> None:
+        # Confirmed unreliable REST endpoints — replaced entirely by top_movers,
+        # not left registered alongside it.
+        assert mcp_server.app._tool_manager.get_tool("top_gainers") is None
+        assert mcp_server.app._tool_manager.get_tool("top_losers") is None
+
+    def test_top_movers_is_registered(self) -> None:
+        tool = mcp_server.app._tool_manager.get_tool("top_movers")
+        assert tool is not None
+
+    def test_top_movers_wraps_client_get_top_movers_and_serializes_dataclasses(self) -> None:
+        mock_client = MagicMock()
+        mock_client.get_top_movers.return_value = [
+            TopMover(
+                stock_id=1, symbol="COMI", name="CIB", last=139.5, change=0.95, change_pct=0.68
+            ),
+            TopMover(
+                stock_id=2,
+                symbol="ABUK",
+                name="Abu Qir",
+                last=91.71,
+                change=-0.29,
+                change_pct=-0.31,
+            ),
+        ]
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("top_movers")
+        assert tool is not None
+        result = tool.fn(market_id=1, limit=50)
+
+        mock_client.get_top_movers.assert_called_once_with(market_id=1, limit=50)
+        assert result == [
+            {
+                "stock_id": 1,
+                "symbol": "COMI",
+                "name": "CIB",
+                "last": 139.5,
+                "change": 0.95,
+                "change_pct": 0.68,
+            },
+            {
+                "stock_id": 2,
+                "symbol": "ABUK",
+                "name": "Abu Qir",
+                "last": 91.71,
+                "change": -0.29,
+                "change_pct": -0.31,
+            },
+        ]
+
+    def test_top_movers_defaults(self) -> None:
+        mock_client = MagicMock()
+        mock_client.get_top_movers.return_value = []
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("top_movers")
+        assert tool is not None
+        tool.fn()
+
+        mock_client.get_top_movers.assert_called_once_with(market_id=1, limit=50)
 
 
 class TestAmendOrderSafetyCheck:

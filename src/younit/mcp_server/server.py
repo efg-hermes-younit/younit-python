@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import sys
 import threading
+from dataclasses import asdict
 
 from mcp.server.fastmcp import FastMCP
 
@@ -172,37 +173,35 @@ def buying_power(symbol: str) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def top_gainers(market_id: int = 1, limit: int = 10) -> list:  # type: ignore[return]
-    """Get the top gaining stocks on EGX today.
+def top_movers(market_id: int = 1, limit: int = 50) -> list:  # type: ignore[return]
+    """Get today's top gaining and losing stocks on EGX, computed live.
 
-    Returns stocks sorted by gain percentage, descending.
-
-    Args:
-        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
-        limit: Maximum number of stocks to return. Default 10.
-
-    Returns:
-        List of market mover dicts, each with symbol, last (EGP), change (EGP),
-        change_pct (%), and volume (shares).
-    """
-    return [m.model_dump() for m in _get_client().top_gainers(market_id=market_id, limit=limit)]
-
-
-@app.tool()
-def top_losers(market_id: int = 1, limit: int = 10) -> list:  # type: ignore[return]
-    """Get the top losing stocks on EGX today.
-
-    Returns stocks sorted by loss percentage, ascending (most negative first).
+    Returns EVERY actively-tradeable stock on the market, sorted by percentage
+    change descending — gainers first, losers last. Take the first few items
+    for top gainers, the last few for top losers. Computed the same way the
+    official EFG app does it (live snapshot bursts over the streaming feed),
+    NOT a REST lookup — this call takes a few seconds (roughly 1-6+ seconds
+    depending on market size) rather than returning instantly, so only use it
+    when the user actually needs current movers, not for every message.
 
     Args:
         market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
-        limit: Maximum number of stocks to return. Default 10.
+        limit: NOT a result-count cap — every tradeable stock is always
+            returned regardless of this value. This controls the internal
+            batch size (how many stocks are subscribed to concurrently per
+            round of live snapshots) and trades off speed against concurrent
+            load: higher = fewer round trips = faster, but more simultaneous
+            subscriptions at once. Default 50 (a few seconds total for the
+            full market). Leave at the default unless you have a specific
+            reason to change it.
 
     Returns:
-        List of market mover dicts, each with symbol, last (EGP), change (EGP),
-        change_pct (% negative for losers), and volume (shares).
+        List of mover dicts covering the full tradeable universe, sorted by
+        change_pct descending. Each has stock_id, symbol, name, last (EGP),
+        change (EGP), and change_pct (%). May be shorter than the full
+        universe if a few symbols' snapshots didn't arrive in time.
     """
-    return [m.model_dump() for m in _get_client().top_losers(market_id=market_id, limit=limit)]
+    return [asdict(m) for m in _get_client().get_top_movers(market_id=market_id, limit=limit)]
 
 
 @app.tool()

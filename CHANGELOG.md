@@ -16,8 +16,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - MCP server with configurable safety controls
 - Structured logging with mandatory credential redaction
 - GitHub Actions CI/CD workflows
+- `top_movers` MCP tool wrapping `Client.get_top_movers()` — returns the full
+  tradeable-stock universe sorted by `change_pct` (gainers first, losers
+  last), computed live over the streaming feed the same way the official
+  EFG app does it.
 
 ### Removed
+- `top_gainers` / `top_losers` MCP tools. The backend team confirmed the
+  underlying REST endpoint (`get_top_gainers_losers`) is not a dedicated
+  server-side computation and may return incomplete/stale data — replaced
+  by the `top_movers` MCP tool above so an AI agent can no longer pick the
+  unreliable option. The SDK methods `Client.top_gainers()`/
+  `Client.top_losers()` are unaffected and remain available for direct SDK use.
 - Removed the single-leaf-cert TLS pinning workaround (`VERIFY_X509_PARTIAL_CHAIN`
   + `certs/efghermesone-identity.pem`) that was in place from ~2026-08 to
   2026-09-13 to route around what appeared to be a broken certificate chain
