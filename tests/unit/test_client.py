@@ -1011,6 +1011,56 @@ class TestSellSettlement:
         body = json.loads(order_route.calls.last.request.content)
         assert body["operationType"] == int(OperationType.SELL_T1) == 203
 
+    def _mock_stock_trading_info(self, respx_mock):
+        return respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-trading-info/1/101").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "data": {"minPrice": 0, "maxPrice": 0, "isIntraday": False, "isTPlus1": False}
+                },
+            )
+        )
+
+    def test_settlement_t0_limit_sends_expire_term_2_no_expire_date(self, respx_mock):
+        """Confirmed live 2026-09-29: DAY(7) and GOOD_TILL_DATE(8) are both
+        rejected for same-day settlement limit sells — UNKNOWN_2 (the same
+        value required for market orders) is the one that's accepted, with
+        no expireDate needed."""
+        client = _make_client(respx_mock)
+        self._mock_buying_power(respx_mock)
+        self._mock_stock_trading_info(respx_mock)
+        order_route = respx_mock.post(f"{FAKE_BASE_URL}/api/v1/orders/normal").mock(
+            return_value=httpx.Response(200, json=self.NEW_SHAPE_RESPONSE)
+        )
+
+        try:
+            client.sell(symbol="COMI", qty=1, limit=65.0, settlement="t0", confirm=False)
+        finally:
+            client.close()
+
+        body = json.loads(order_route.calls.last.request.content)
+        assert body["orderExpireTermsID"] == int(OrderExpireTerm.UNKNOWN_2) == 2
+        assert "expireDate" not in body
+
+    @pytest.mark.parametrize("settlement", ["t1", "t2"])
+    def test_settlement_t1_t2_limit_still_sends_day_unchanged(self, respx_mock, settlement):
+        """Regression guard: only same-day settlement is affected by the
+        UNKNOWN_2 fix — t1/t2 limit sells keep using DAY(7) unchanged."""
+        client = _make_client(respx_mock)
+        self._mock_buying_power(respx_mock)
+        self._mock_stock_trading_info(respx_mock)
+        order_route = respx_mock.post(f"{FAKE_BASE_URL}/api/v1/orders/normal").mock(
+            return_value=httpx.Response(200, json=self.NEW_SHAPE_RESPONSE)
+        )
+
+        try:
+            client.sell(symbol="COMI", qty=1, limit=65.0, settlement=settlement, confirm=False)
+        finally:
+            client.close()
+
+        body = json.loads(order_route.calls.last.request.content)
+        assert body["orderExpireTermsID"] == int(OrderExpireTerm.DAY) == 7
+
     def test_invalid_settlement_raises_invalid_order(self, respx_mock):
         client = _make_client(respx_mock)
 

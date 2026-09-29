@@ -14,6 +14,8 @@ Prerequisites:
 - Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
 """
 
+from time import sleep
+
 from younit import Client
 from younit.exceptions import APIError, BadRequest, InsufficientFunds, NotFound, OrderRejected
 
@@ -48,6 +50,7 @@ with Client() as client:
     # Step 2: Cancel the order
     # ------------------------------------------------------------------
     print(f"Cancelling order {order.order_id}...")
+    sleep(5)  # brief pause to ensure the order is registered before attempting cancellation
 
     try:
         cancelled = client.cancel_order(order.order_id)

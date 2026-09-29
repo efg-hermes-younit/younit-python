@@ -18,8 +18,8 @@ Prerequisites:
 from younit import Client
 from younit.exceptions import APIError, InsufficientFunds, OrderRejected
 
-SYMBOL = "CRST"
-QUANTITY = 1  # shares
+SYMBOL = "ABUK"
+QUANTITY = 2  # shares
 
 with Client() as client:
     quote = client.quote(SYMBOL)

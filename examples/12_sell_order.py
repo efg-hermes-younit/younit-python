@@ -15,7 +15,7 @@ Prerequisites:
 from younit import Client
 from younit.exceptions import APIError, InsufficientFunds, InvalidOrder, OrderRejected
 
-SYMBOL = "DEIN"
+SYMBOL = "ABUK"
 
 with Client() as client:
     pos = client.position(SYMBOL)
@@ -30,25 +30,24 @@ with Client() as client:
     print(f"  Current market price:{pos.market_price:.4f} EGP")
     print(f"  Unrealized P&L:      {pos.unrealized_pnl:+.2f} EGP ({pos.unrealized_pnl_pct:+.2f}%)")
 
-    qty_to_sell = pos.qty_valid_for_sale
-    print(f"\nPlacing MARKET SELL: {qty_to_sell} x {SYMBOL}")
-
     quote = client.quote(SYMBOL)
-    limit_price = round(quote.min_price*1.01, 1)  # 1% below market
+    # limit_price = round(quote.last*0.95, 1)  # 1% below market
+    # limit_price = round(quote.min_price*1.01, 1)  # 1% below market
+    limit_price = round(quote.max_price*0.98, 1)  # 1% below market
 
     try:
-        order = client.sell_market(
-            symbol=SYMBOL,
-            qty=1,               # expire_date is now auto-supplied
-            settlement="t0",     # same-day settlement close
-        )
-
-        # order = client.sell_limit(
+        # order = client.sell_market(
         #     symbol=SYMBOL,
-        #     qty=1,
-        #     price=limit_price,
-        #     settlement="t0",
+        #     qty=1,               # expire_date is now auto-supplied
+        #     settlement="t2",     # same-day settlement close
         # )
+
+        order = client.sell_limit(
+            symbol=SYMBOL,
+            qty=1,
+            price=limit_price,
+            settlement="t2",
+        )
 
         print(f"OK: Order submitted — orderId: {order.order_id}")
         print(f"    status: {order.status}")

@@ -1408,7 +1408,18 @@ class Client:
                 expire_date = datetime.now(_CAIRO_TZ)
         else:
             order_price = limit
-            expire_term = OrderExpireTerm.GOOD_TILL_DATE if expire == "gtd" else OrderExpireTerm.DAY
+            if operation == OperationType.SELL_SAME_DAY:
+                # Confirmed live 2026-09-29: same-day settlement limit sells
+                # reject both DAY(7) ("...must be 'Valid Till Date'") and
+                # GOOD_TILL_DATE(8) ("Market not allow Expiry Term:
+                # GoodTillTime") — UNKNOWN_2 is the value that's actually
+                # accepted here, same as market orders, with no expireDate
+                # needed. t1/t2 limit sells are unaffected (keep DAY/GTD).
+                expire_term = OrderExpireTerm.UNKNOWN_2
+            else:
+                expire_term = (
+                    OrderExpireTerm.GOOD_TILL_DATE if expire == "gtd" else OrderExpireTerm.DAY
+                )
 
         request = OrderRequest(
             profileID=profile_id,
