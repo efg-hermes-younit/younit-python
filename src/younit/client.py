@@ -33,6 +33,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from younit import _security_class_snapshot
 from younit.auth import IdentityProvider, TokenStore
 from younit.config import _BASE_URL, Settings
 from younit.endpoints import account as _account
@@ -41,6 +42,7 @@ from younit.endpoints import market_data as _market_data
 from younit.endpoints import orders as _orders
 from younit.endpoints import trading as _trading
 from younit.enums import (
+    SECURITY_CLASS_NAMES,
     ChartPeriod,
     ExecutionTerm,
     OperationType,
@@ -75,6 +77,12 @@ _SETTLEMENT_TO_OPERATION_TYPE = {
     "same_day": OperationType.SELL_SAME_DAY,
     "t1": OperationType.SELL_T1,
 }
+
+# get_top_movers()'s real-equity filter over list_stocks()'s security_class_name
+# — excludes Tbills, bonds, futures, etc., which have no meaningful
+# change_pct/gainer-loser concept. Confirmed live: OTC == the OTC list-type
+# category exactly (42/42, zero discrepancy).
+_TOP_MOVERS_ELIGIBLE_CLASSES = frozenset({"LocalSecurity_IN", "LocalSecurity_OUT", "OTC"})
 
 # MarketStatistics stream's m_MarketStatus -> friendly status string.
 # Empirically derived from live observation (2026-09-05): "2" seen during
@@ -358,6 +366,20 @@ class Client:
             (e.g. an empty symbol cache).
         """
         return self._get_profile_id()
+
+    @property
+    def security_class_snapshot_captured_at(self) -> str | None:
+        """ISO-8601 UTC capture date of the ``_SecurityClassID`` enrichment
+        snapshot used by :meth:`list_stocks` (``None`` if the snapshot file
+        is missing).
+
+        TEMPORARY: this whole enrichment mechanism (snapshot file +
+        this property) is scaffolding meant to be deleted once
+        ``list_stocks()``'s backend response includes ``_SecurityClassID``
+        natively — see ``younit._security_class_snapshot``'s module
+        docstring for the removal checklist.
+        """
+        return _security_class_snapshot.snapshot_captured_at()
 
     def account_info(self) -> AccountInfo:
         """Fetch the client's account information.
@@ -683,7 +705,12 @@ class Client:
         Returns every security registered on this market — common stocks,
         bonds, sukuk, and delisted rights issues alike (506 items for market
         1, confirmed via live testing) — not just actively-tradeable stocks.
-        For tradeable common stocks only, see :meth:`list_tradeable_stocks`.
+        Each result is enriched with ``security_class_name`` (instrument
+        type, e.g. ``"LocalSecurity_IN"``/``"OTC"``/``"Tbills"`` — see
+        :data:`~younit.enums.SECURITY_CLASS_NAMES`) and
+        ``is_same_day_eligible`` (live Intraday-list membership — see that
+        field's docstring on :class:`~younit.models.market_data.StockInfo`
+        for why it can't be inferred from ``security_class_name`` alone).
 
         Args:
             market_id: Market identifier. Defaults to configured default (1 = EGX).
@@ -713,70 +740,116 @@ class Client:
                 reuter = item.get("reuterCode") or ""
                 item["symbol"] = reuter.split(".")[0] or None
             result.append(StockInfo.model_validate(item))
+        self._enrich_security_classes(result)
+        same_day_ids = self._fetch_same_day_eligible_stock_ids(mid)
+        for stock in result:
+            stock.is_same_day_eligible = stock.stock_id in same_day_ids
         return result
 
-    def list_tradeable_stocks(self, market_id: int | None = None) -> list[StockInfo]:
-        """List actively-tradeable common stocks (Intraday + OTC eligible).
+    def _fetch_same_day_eligible_stock_ids(self, market_id: int) -> set[int]:
+        """Live Intraday-list membership (same-day/T0 eligible stock_ids).
 
-        Unlike :meth:`list_stocks`, which returns everything registered on
-        the market (stocks, bonds, sukuk, delisted rights issues — 506
-        items for market 1), this returns only stocks eligible for
-        intraday or OTC trading (confirmed via live testing: 215 + 41 =
-        256 stocks, zero overlap between the two categories, and confirmed
-        free of the non-stock instruments present in the full listing).
-
-        Category ids are looked up dynamically via
-        ``stock-lists-types/{marketId}`` (matched by name, case-insensitive
-        "intraday"/"otc" substring) rather than hardcoded, since "Type
-        always equals Id" is only confirmed for the categories that exist
-        today, not guaranteed permanently. If a category can't be found,
-        it's skipped (with a logged warning) rather than raising.
-
-        Args:
-            market_id: Market identifier. Defaults to configured default (1 = EGX).
-
-        Returns:
-            List of :class:`~younit.models.market_data.StockInfo`,
-            deduplicated by stock id (Intraday ∪ OTC).
+        Category id is looked up dynamically via ``stock-lists-types/
+        {marketId}`` (matched by name, case-insensitive "intraday"
+        substring) rather than hardcoded, since "Type always equals Id" is
+        only confirmed for the categories that exist today, not guaranteed
+        permanently. Returns an empty set (logged) if the category can't
+        be found, rather than raising.
         """
-        mid = market_id if market_id is not None else self._settings.default_market_id
         categories = _market_data.get_stock_list_types(
             self._http,
             self._base_url,
             self._default_headers,
             token=self._token(),
-            market_id=mid,
+            market_id=market_id,
         )
+        category = next(
+            (row for row in categories if "intraday" in (row.get("name") or "").lower()), None
+        )
+        if category is None:
+            _log.warning("list_stocks_same_day_category_not_found", market_id=market_id)
+            return set()
 
-        def _find_category(name_substring: str) -> dict[str, Any] | None:
-            for row in categories:
-                name = row.get("name") or ""
-                if name_substring in name.lower():
-                    return row
-            return None
+        stocks = _market_data.get_stocks_by_list_type(
+            self._http,
+            self._base_url,
+            self._default_headers,
+            token=self._token(),
+            list_type=category["type"],
+            list_id=category["id"],
+            market_id=market_id,
+        )
+        return {stock.stock_id for stock in stocks if stock.stock_id is not None}
 
-        wanted = {"intraday": _find_category("intraday"), "otc": _find_category("otc")}
+    @staticmethod
+    def _enrich_security_classes(stocks: list[StockInfo]) -> None:
+        """TEMPORARY: fill in security_class_id/security_class_name from the
+        point-in-time snapshot (see ``younit._security_class_snapshot``'s
+        removal checklist). Mutates each StockInfo in place."""
+        for stock in stocks:
+            class_id, class_name = _security_class_snapshot.get_security_class(stock.stock_id)
+            stock.security_class_id = class_id
+            stock.security_class_name = class_name
 
-        result: dict[int, StockInfo] = {}
-        for label, category in wanted.items():
-            if category is None:
-                _log.warning(
-                    "list_tradeable_stocks_category_not_found", label=label, market_id=mid
-                )
-                continue
-            stocks = _market_data.get_stocks_by_list_type(
-                self._http,
-                self._base_url,
-                self._default_headers,
-                token=self._token(),
-                list_type=category["type"],
-                list_id=category["id"],
-                market_id=mid,
+    def list_by_class(self, *class_names: str) -> list[StockInfo]:
+        """Filter :meth:`list_stocks` by one or more ``security_class_name``
+        values (e.g. ``"OTC"``, ``"Tbills"``, ``"LocalSecurity_IN"``). See
+        :data:`~younit.enums.SECURITY_CLASS_NAMES` for all known values.
+
+        Args:
+            *class_names: One or more ``security_class_name`` values to
+                include (OR logic — a stock matching ANY of them is
+                included).
+
+        Returns:
+            ``list[StockInfo]`` whose ``security_class_name`` is in
+            ``class_names``. Stocks with ``security_class_name=None`` (not
+            in the snapshot) are never included.
+
+        Raises:
+            ValueError: If any ``class_names`` value isn't a recognized
+                name (checked against
+                :data:`~younit.enums.SECURITY_CLASS_NAMES`'s values,
+                case-sensitive) — fails fast on a typo rather than silently
+                returning an empty list.
+        """
+        known = set(SECURITY_CLASS_NAMES.values())
+        unknown = [name for name in class_names if name not in known]
+        if unknown:
+            raise ValueError(
+                f"Unrecognized security_class_name value(s): {unknown}. "
+                "See younit.enums.SECURITY_CLASS_NAMES for valid values."
             )
-            for stock in stocks:
-                if stock.stock_id is not None:
-                    result[stock.stock_id] = stock
-        return list(result.values())
+        wanted = set(class_names)
+        return [s for s in self.list_stocks() if s.security_class_name in wanted]
+
+    def list_same_day_eligible(self) -> list[StockInfo]:
+        """Stocks eligible for same-day (T0) trading.
+
+        Thin convenience wrapper equivalent to
+        ``[s for s in list_stocks() if s.is_same_day_eligible]``.
+        """
+        return [s for s in self.list_stocks() if s.is_same_day_eligible]
+
+    def list_otc(self) -> list[StockInfo]:
+        """OTC-classified stocks — equivalent to ``list_by_class("OTC")``.
+
+        Provided as a named convenience since OTC is the most
+        commonly-filtered class.
+        """
+        return self.list_by_class("OTC")
+
+    @staticmethod
+    def security_class_names() -> list[str]:
+        """All recognized ``security_class_name`` values accepted by
+        :meth:`list_by_class` (e.g. ``"OTC"``, ``"Tbills"``,
+        ``"LocalSecurity_IN"``), sorted alphabetically.
+
+        Convenience wrapper around :data:`~younit.enums.SECURITY_CLASS_NAMES`
+        — no API call, no ``Client`` instance needed (safe to call as
+        ``Client.security_class_names()``).
+        """
+        return sorted(set(SECURITY_CLASS_NAMES.values()))
 
     def historical_prices(
         self,
@@ -894,16 +967,20 @@ class Client:
     ) -> list[TopMover]:
         """Get current top gainers/losers, computed via live snapshot bursts.
 
-        Subscribes to SymbolStatistics for the FULL tradeable-stock universe
-        (via :meth:`list_tradeable_stocks` — never truncated), in consecutive
-        batches of up to ``limit`` concurrent subscriptions at a time:
-        captures each symbol's first snapshot event, unsubscribes the batch,
-        then moves on to the next batch — a quick burst per batch (confirmed
-        via live testing: 20 symbols in ~0.25s), not a long-running session.
-        This mirrors exactly how the official EFG app computes top movers
-        (confirmed with the backend team) — it is NOT a dedicated backend
-        endpoint. See :meth:`top_gainers`/:meth:`top_losers` for the cheaper,
-        one-shot (but potentially stale or incomplete) REST alternative.
+        Subscribes to SymbolStatistics for the FULL real-equity universe
+        (via :meth:`list_stocks`, filtered to ``security_class_name`` in
+        ``LocalSecurity_IN``/``LocalSecurity_OUT``/``OTC`` — real equities
+        only, excluding Tbills, bonds, futures, etc. which have no
+        meaningful ``change_pct``/gainer-loser concept — never truncated),
+        in consecutive batches of up to ``limit`` concurrent subscriptions
+        at a time: captures each symbol's first snapshot event,
+        unsubscribes the batch, then moves on to the next batch — a quick
+        burst per batch (confirmed via live testing: 20 symbols in ~0.25s),
+        not a long-running session. This mirrors exactly how the official
+        EFG app computes top movers (confirmed with the backend team) — it
+        is NOT a dedicated backend endpoint. See
+        :meth:`top_gainers`/:meth:`top_losers` for the cheaper, one-shot
+        (but potentially stale or incomplete) REST alternative.
 
         The initial snapshot alone was confirmed via live testing to reliably
         carry real change/change_pct data (``isSnapshot() == True``), so
@@ -911,10 +988,6 @@ class Client:
         predecessor's approach — is unnecessary and avoids the
         long-running-streaming-session reliability gap found elsewhere in
         this SDK's testing (see repo notes).
-
-        Uses :meth:`list_tradeable_stocks` (not :meth:`list_stocks`) so bonds,
-        sukuk, and rights issues — which have no meaningful price-change data
-        — are never subscribed to.
 
         NOTE: not yet verified outside market hours — snapshot change-data
         availability when the market is closed is unconfirmed.
@@ -924,13 +997,11 @@ class Client:
                 once — matching the SDK's own documented streaming
                 concurrency guidance (proposed per-user caps of 10/30/50 by
                 tier). Defaults to 50. NOT "how many stocks to sample" — the
-                full tradeable universe is always covered regardless of this
-                value; it only controls batch size, trading off speed
+                full real-equity universe is always covered regardless of
+                this value; it only controls batch size, trading off speed
                 (bigger batches = fewer round trips = faster) against
                 concurrent load (bigger batches = more simultaneous
-                subscriptions at once). E.g. 256 tradeable stocks at
-                ``limit=50`` is ~6 batches, so total time is roughly 6x a
-                single batch's duration, not instant.
+                subscriptions at once).
             market_id: Market identifier. Defaults to configured default.
             timeout: Max seconds to wait for all snapshots in EACH batch
                 before moving on — applies independently per batch, not to
@@ -938,13 +1009,18 @@ class Client:
                 batches from running.
 
         Returns:
-            ``list[TopMover]`` covering the full tradeable universe, sorted
-            by ``change_pct`` descending (gainers first, losers last). May be
-            shorter than the true universe count if some batch(es) had
-            symbols whose snapshots didn't arrive within ``timeout``.
+            ``list[TopMover]`` covering the full real-equity universe,
+            sorted by ``change_pct`` descending (gainers first, losers
+            last). May be shorter than the true universe count if some
+            batch(es) had symbols whose snapshots didn't arrive within
+            ``timeout``.
         """
         mid = market_id if market_id is not None else self._settings.default_market_id
-        stocks = [s for s in self.list_tradeable_stocks(market_id=mid) if s.symbol]
+        stocks = [
+            s
+            for s in self.list_stocks(market_id=mid)
+            if s.symbol and s.security_class_name in _TOP_MOVERS_ELIGIBLE_CLASSES
+        ]
 
         results: list[TopMover] = []
         for start in range(0, len(stocks), limit):

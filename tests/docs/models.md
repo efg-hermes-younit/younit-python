@@ -48,6 +48,11 @@ Defined in [market_data.py](../src/younit/models/market_data.py) as a Pydantic `
 | `last` | `float` | `price` | Last traded price in EGP. |
 | `is_intraday` | `bool` | `isIntraday` | True if this stock supports intraday trading. |
 | `is_tplus1` | `bool` | `isTPlus1` | True if this stock settles T+1. |
+| `security_class_id` | `int \| None` | `_SecurityClassID` | Instrument-type classification. TEMPORARY: client-side-enriched from a point-in-time snapshot, not live data — see `younit._security_class_snapshot`. |
+| `security_class_name` | `str \| None` | *(none)* | Human-readable name for `security_class_id` (e.g. `"LocalSecurity_IN"`, `"OTC"`, `"Tbills"`) — see `younit.enums.SECURITY_CLASS_NAMES`. |
+| `is_same_day_eligible` | `bool` | *(none)* | True if this stock is on the live Intraday tradeable list (same-day/T0 eligible). |
+
+`client.list_stocks()` also has three convenience wrappers for filtering on the two fields above without writing a manual list comprehension: `client.list_by_class(*class_names)` (OR-filter by `security_class_name`, raises `ValueError` on an unrecognized name), `client.list_same_day_eligible()`, and `client.list_otc()` (shorthand for `list_by_class("OTC")`).
 
 ## MarketMover
 

@@ -98,6 +98,27 @@ class OrderExpireTerm(IntEnum):
     UNKNOWN_11 = 11  # unconfirmed
 
 
+# _SecurityClassID name table, sourced from internal database access (NOT
+# officially published/confirmed by the backend team) — trimmed to only
+# the values actually observed in this account's live security universe
+# (see diagnostics/capture_security_classes.py /
+# src/younit/data/security_classes_snapshot.json). A plain dict (not an
+# IntEnum) is used here since the labels aren't valid Python identifiers
+# as-is (mixed case with underscores, e.g. "LocalSecurity_IN") and this is
+# only ever used for read-only id->name lookup, never sent back to the
+# API. An id not in this table (e.g. one of the ~29 known-but-unobserved
+# classes) resolves to security_class_name=None, same as any other
+# unmapped/unknown id — see _security_class_snapshot.get_security_class.
+SECURITY_CLASS_NAMES: dict[int, str] = {
+    1: "LocalSecurity_IN",
+    2: "LocalSecurity_OUT",
+    5: "OTC",
+    7: "PrivateBond_IN",
+    21: "FuturesDerivativeContracts",
+    35: "Tbills",
+}
+
+
 class OrderVia(IntEnum):
     """Order submission channel (_Ordervia in OpenAPI spec).
 

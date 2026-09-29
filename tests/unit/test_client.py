@@ -202,7 +202,7 @@ RAW_PORTFOLIO_SECURITIES_RESPONSE = {
 }
 
 
-def _make_client(respx_mock) -> Client:
+def _make_client(respx_mock, raw_stocks=RAW_STOCKS) -> Client:
     respx_mock.post(f"{FAKE_BASE_URL}/connect/token").mock(
         return_value=httpx.Response(200, json=conf.SERVER_TOKEN_RESPONSE)
     )
@@ -210,7 +210,7 @@ def _make_client(respx_mock) -> Client:
         return_value=httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE)
     )
     respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/market/1", name="market_stocks").mock(
-        return_value=httpx.Response(200, json=RAW_STOCKS)
+        return_value=httpx.Response(200, json=raw_stocks)
     )
     return Client(
         partner_id=conf.FAKE_PARTNER_ID,
@@ -436,8 +436,39 @@ class TestFundPositions:
         assert missing is None
 
 
+def _mock_same_day_list(respx_mock, market_id: int = 1, member_stock_ids: set[int] | None = None):
+    """Mock the two live calls list_stocks() makes to resolve
+    is_same_day_eligible (stock-lists-types + stocks-by-list-type for the
+    Intraday category)."""
+    member_stock_ids = member_stock_ids or set()
+    respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/{market_id}").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "messages": None,
+                "data": [{"name": "Intraday Stocks", "id": 2, "count": 2, "type": 2}],
+            },
+        )
+    )
+    respx_mock.get(
+        f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/{market_id}"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "messages": None,
+                "data": [
+                    {"id": sid, "reuterCode": f"S{sid}.CA", "name": f"Stock {sid}", "marketId": market_id}
+                    for sid in member_stock_ids
+                ],
+            },
+        )
+    )
+
+
 class TestListStocks:
     def test_no_market_id_matches_explicit_market_id_1(self, respx_mock):
+        _mock_same_day_list(respx_mock, member_stock_ids={101})
         client = _make_client(respx_mock)
         try:
             default_result = client.list_stocks()
@@ -448,6 +479,59 @@ class TestListStocks:
         assert default_result == explicit_result
         assert len(default_result) == 1
         assert default_result[0].symbol == "COMI"
+
+    def test_enriches_security_class_for_known_stock_id(self, respx_mock, monkeypatch):
+        """TEMPORARY scaffolding: list_stocks() enriches from the
+        client-side security-class snapshot (see
+        younit._security_class_snapshot)."""
+        _mock_same_day_list(respx_mock, member_stock_ids={101})
+        monkeypatch.setattr(
+            client_module._security_class_snapshot,
+            "get_security_class",
+            lambda stock_id: (1, "LocalSecurity_IN") if stock_id == 101 else (None, None),
+        )
+        client = _make_client(respx_mock)
+
+        try:
+            result = client.list_stocks()
+        finally:
+            client.close()
+
+        assert result[0].stock_id == 101
+        assert result[0].security_class_id == 1
+        assert result[0].security_class_name == "LocalSecurity_IN"
+
+    def test_security_class_none_for_unknown_stock_id(self, respx_mock, monkeypatch):
+        _mock_same_day_list(respx_mock, member_stock_ids={101})
+        monkeypatch.setattr(
+            client_module._security_class_snapshot,
+            "get_security_class",
+            lambda stock_id: (None, None),
+        )
+        client = _make_client(respx_mock)
+
+        try:
+            result = client.list_stocks()
+        finally:
+            client.close()
+
+        assert result[0].security_class_id is None
+        assert result[0].security_class_name is None
+
+    def test_security_class_snapshot_captured_at_exposed(self, respx_mock, monkeypatch):
+        monkeypatch.setattr(
+            client_module._security_class_snapshot,
+            "snapshot_captured_at",
+            lambda: "2026-09-29T00:00:00+00:00",
+        )
+        client = _make_client(respx_mock)
+
+        try:
+            captured_at = client.security_class_snapshot_captured_at
+        finally:
+            client.close()
+
+        assert captured_at == "2026-09-29T00:00:00+00:00"
 
 
 RAW_STOCK_LIST_TYPES = [
@@ -461,15 +545,12 @@ RAW_INTRADAY_STOCKS = [
     {"id": 102, "reuterCode": "EAST.CA", "name": "Eastern Company", "marketId": 1},
 ]
 
-RAW_OTC_STOCKS = [
-    # id 102 overlaps with an intraday row on purpose, to test dedup by id.
-    {"id": 102, "reuterCode": "EAST.CA", "name": "Eastern Company", "marketId": 1},
-    {"id": 200, "reuterCode": "ABUK.CA", "name": "Abu Qir Fertilizers", "marketId": 1},
-]
 
+class TestListStocksSameDayEligibility:
+    """list_stocks() enriches is_same_day_eligible from live Intraday-list
+    membership (folded in from the removed list_tradeable_stocks())."""
 
-class TestListTradeableStocks:
-    def test_merges_and_deduplicates_intraday_and_otc(self, respx_mock):
+    def test_marks_true_for_intraday_list_member(self, respx_mock):
         client = _make_client(respx_mock)
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/1").mock(
             return_value=httpx.Response(200, json={"messages": None, "data": RAW_STOCK_LIST_TYPES})
@@ -477,69 +558,175 @@ class TestListTradeableStocks:
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/1").mock(
             return_value=httpx.Response(200, json={"messages": None, "data": RAW_INTRADAY_STOCKS})
         )
-        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/3/3/1").mock(
-            return_value=httpx.Response(200, json={"messages": None, "data": RAW_OTC_STOCKS})
-        )
 
         try:
-            stocks = client.list_tradeable_stocks()
+            stocks = client.list_stocks()
         finally:
             client.close()
 
-        stock_ids = {s.stock_id for s in stocks}
-        assert stock_ids == {101, 102, 200}
-        assert len(stocks) == 3
+        # _make_client's base mock returns only COMI (stock_id 101), which
+        # IS present in the mocked Intraday list above.
+        assert len(stocks) == 1
+        assert stocks[0].stock_id == 101
+        assert stocks[0].is_same_day_eligible is True
+
+    def test_marks_false_for_non_member(self, respx_mock):
+        client = _make_client(respx_mock)
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/1").mock(
+            return_value=httpx.Response(200, json={"messages": None, "data": RAW_STOCK_LIST_TYPES})
+        )
+        # Intraday list does NOT include stock_id 101 (COMI) this time.
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/1").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "messages": None,
+                    "data": [{"id": 999, "reuterCode": "XYZ.CA", "name": "Other", "marketId": 1}],
+                },
+            )
+        )
+
+        try:
+            stocks = client.list_stocks()
+        finally:
+            client.close()
+
+        assert stocks[0].is_same_day_eligible is False
 
     def test_uses_explicit_market_id(self, respx_mock):
         client = _make_client(respx_mock)
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/market/2").mock(
+            return_value=httpx.Response(200, json=RAW_STOCKS)
+        )
         types_route = respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/2").mock(
             return_value=httpx.Response(200, json={"messages": None, "data": RAW_STOCK_LIST_TYPES})
         )
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/2").mock(
             return_value=httpx.Response(200, json={"messages": None, "data": RAW_INTRADAY_STOCKS})
         )
-        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/3/3/2").mock(
-            return_value=httpx.Response(200, json={"messages": None, "data": RAW_OTC_STOCKS})
-        )
 
         try:
-            client.list_tradeable_stocks(market_id=2)
+            client.list_stocks(market_id=2)
         finally:
             client.close()
 
         assert types_route.calls.last.request.url.path.endswith("/stock-lists-types/2")
 
-    def test_missing_category_logged_and_skipped_without_crashing(self, respx_mock, monkeypatch):
+    def test_missing_category_logged_and_defaults_false(self, respx_mock, monkeypatch):
         client = _make_client(respx_mock)
-        # OTC Stocks is deliberately absent from this response.
+        # Intraday category is deliberately absent from this response.
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/1").mock(
             return_value=httpx.Response(
                 200,
                 json={
                     "messages": None,
-                    "data": [
-                        {"name": "Intraday Stocks", "id": 2, "count": 2, "type": 2},
-                        {"name": "Most Liked Stocks", "id": 5, "count": 10, "type": 5},
-                    ],
+                    "data": [{"name": "Most Liked Stocks", "id": 5, "count": 10, "type": 5}],
                 },
             )
-        )
-        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/1").mock(
-            return_value=httpx.Response(200, json={"messages": None, "data": RAW_INTRADAY_STOCKS})
         )
         log_spy = MagicMock()
         monkeypatch.setattr(client_module, "_log", log_spy)
 
         try:
-            stocks = client.list_tradeable_stocks()
+            stocks = client.list_stocks()
         finally:
             client.close()
 
-        stock_ids = {s.stock_id for s in stocks}
-        assert stock_ids == {101, 102}
+        assert stocks[0].is_same_day_eligible is False
         log_spy.warning.assert_called_once_with(
-            "list_tradeable_stocks_category_not_found", label="otc", market_id=1
+            "list_stocks_same_day_category_not_found", market_id=1
         )
+
+
+RAW_MULTI_CLASS_STOCKS = [
+    {"stockId": 101, "symbol": "AAA", "stockName": "AAA Co", "reuterCode": "AAA.CA", "marketId": 1},
+    {"stockId": 102, "symbol": "BBB", "stockName": "BBB Co", "reuterCode": "BBB.CA", "marketId": 1},
+    {"stockId": 103, "symbol": "CCC", "stockName": "CCC Co", "reuterCode": "CCC.CA", "marketId": 1},
+    {"stockId": 104, "symbol": "DDD", "stockName": "DDD Co", "reuterCode": "DDD.CA", "marketId": 1},
+]
+
+# 101 -> LocalSecurity_IN, 102 -> OTC, 103 -> Tbills, 104 -> not in snapshot (None).
+_MULTI_CLASS_MAP = {
+    101: (1, "LocalSecurity_IN"),
+    102: (5, "OTC"),
+    103: (35, "Tbills"),
+}
+
+
+class TestListByClassAndConvenienceFilters:
+    """list_by_class()/list_same_day_eligible()/list_otc() — thin,
+    in-memory filters over a single list_stocks() call."""
+
+    def _make_filterable_client(self, respx_mock, monkeypatch, same_day_stock_ids=frozenset({101})):
+        monkeypatch.setattr(
+            client_module._security_class_snapshot,
+            "get_security_class",
+            lambda stock_id: _MULTI_CLASS_MAP.get(stock_id, (None, None)),
+        )
+        _mock_same_day_list(respx_mock, member_stock_ids=set(same_day_stock_ids))
+        return _make_client(respx_mock, raw_stocks=RAW_MULTI_CLASS_STOCKS)
+
+    def test_list_by_class_single_class(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch)
+
+        try:
+            result = client.list_by_class("OTC")
+        finally:
+            client.close()
+
+        assert {s.stock_id for s in result} == {102}
+
+    def test_list_by_class_multiple_classes_is_or_logic(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch)
+
+        try:
+            result = client.list_by_class("OTC", "Tbills")
+        finally:
+            client.close()
+
+        assert {s.stock_id for s in result} == {102, 103}
+
+    def test_list_by_class_excludes_none_security_class_name(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch)
+
+        try:
+            result = client.list_by_class("OTC", "Tbills", "LocalSecurity_IN")
+        finally:
+            client.close()
+
+        # stock_id 104 has security_class_name=None (not in the snapshot) —
+        # never included, even though every recognized class is requested.
+        assert 104 not in {s.stock_id for s in result}
+        assert {s.stock_id for s in result} == {101, 102, 103}
+
+    def test_list_by_class_unrecognized_name_raises_value_error(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch)
+
+        try:
+            with pytest.raises(ValueError, match="Unrecognized security_class_name"):
+                client.list_by_class("NotARealClass")
+        finally:
+            client.close()
+
+    def test_list_same_day_eligible(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch, same_day_stock_ids={101, 103})
+
+        try:
+            result = client.list_same_day_eligible()
+        finally:
+            client.close()
+
+        assert {s.stock_id for s in result} == {101, 103}
+
+    def test_list_otc(self, respx_mock, monkeypatch):
+        client = self._make_filterable_client(respx_mock, monkeypatch)
+
+        try:
+            result = client.list_otc()
+        finally:
+            client.close()
+
+        assert {s.stock_id for s in result} == {102}
 
 
 class TestCancelOrderProfileResolution:
@@ -1526,12 +1713,22 @@ class _FakeStreamingClientForGetTopMovers:
 
 
 class TestGetTopMovers:
-    """get_top_movers() batches through the FULL tradeable-stock universe in
-    chunks of up to `limit` concurrent subscriptions, capturing each symbol's
-    snapshot and returning a sorted TopMover ranking covering every stock."""
+    """get_top_movers() batches through the FULL real-equity universe (from
+    list_stocks(), filtered to security_class_name in LocalSecurity_IN/
+    LocalSecurity_OUT/OTC) in chunks of up to `limit` concurrent
+    subscriptions, capturing each symbol's snapshot and returning a sorted
+    TopMover ranking covering every stock."""
 
-    def _make_stock(self, stock_id: int, symbol: str, name: str) -> StockInfo:
-        return StockInfo(stock_id=stock_id, symbol=symbol, name=name, market_id=1)
+    def _make_stock(
+        self, stock_id: int, symbol: str, name: str, security_class_name: str = "LocalSecurity_IN"
+    ) -> StockInfo:
+        return StockInfo(
+            stock_id=stock_id,
+            symbol=symbol,
+            name=name,
+            market_id=1,
+            security_class_name=security_class_name,
+        )
 
     def _make_bare_client(
         self,
@@ -1544,7 +1741,7 @@ class TestGetTopMovers:
         client.streaming = _FakeStreamingClientForGetTopMovers(
             quotes=quotes, unresponsive_symbols=unresponsive_symbols
         )
-        client.list_tradeable_stocks = MagicMock(return_value=stocks)
+        client.list_stocks = MagicMock(return_value=stocks)
         return client
 
     def _symbol_update(
@@ -1569,7 +1766,7 @@ class TestGetTopMovers:
 
         movers = client.get_top_movers(limit=5)
 
-        client.list_tradeable_stocks.assert_called_once_with(market_id=1)
+        client.list_stocks.assert_called_once_with(market_id=1)
         assert len(movers) == 12
         assert {m.symbol for m in movers} == {f"SYM{i}" for i in range(12)}
 
@@ -1579,7 +1776,23 @@ class TestGetTopMovers:
 
         client.get_top_movers(limit=1, market_id=7)
 
-        client.list_tradeable_stocks.assert_called_once_with(market_id=7)
+        client.list_stocks.assert_called_once_with(market_id=7)
+
+    def test_filters_out_non_equity_security_classes(self):
+        """Tbills/bonds/futures etc. have no meaningful change_pct — only
+        LocalSecurity_IN/LocalSecurity_OUT/OTC are real equities."""
+        stocks = [
+            self._make_stock(1, "AAA", "A Co", security_class_name="LocalSecurity_IN"),
+            self._make_stock(2, "BBB", "B Co", security_class_name="LocalSecurity_OUT"),
+            self._make_stock(3, "CCC", "C Co", security_class_name="OTC"),
+            self._make_stock(4, "DDD", "D Bond", security_class_name="Tbills"),
+            self._make_stock(5, "EEE", "E Fut", security_class_name=None),
+        ]
+        client = self._make_bare_client(stocks)
+
+        movers = client.get_top_movers(limit=5)
+
+        assert {m.symbol for m in movers} == {"AAA", "BBB", "CCC"}
 
     def test_returns_correctly_sorted_list(self):
         stocks = [

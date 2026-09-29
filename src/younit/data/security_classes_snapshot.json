@@ -1,0 +1,2086 @@
+{
+  "captured_at_utc": "2026-09-29T11:54:52.418074+00:00",
+  "market_id": 1,
+  "source": "diagnostics/capture_security_classes.py",
+  "total_securities": 520,
+  "captured_count": 518,
+  "failed_count": 2,
+  "stocks": {
+    "536": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104879": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "294": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2218": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "644": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "649": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "319": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1329": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104685": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "557": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1190": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "522": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "352": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "591": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1027498": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2478": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "390": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "268": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "349": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1473": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "587": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1535": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "588": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102906": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "679": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102813": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1016497": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2538": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102926": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103427": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1011535": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1091795": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1088462": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "534": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1031531": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "423": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1060486": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "342": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1054166": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102944": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1039183": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "212": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "105889": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1544": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "531": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103393": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "195": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1328": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102867": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102799": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "105944": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1037894": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102911": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102817": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1099071": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102838": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "715": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1366": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "332": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "471": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "234": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102957": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103071": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102856": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102873": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102879": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "458": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "250": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102827": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103008": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102987": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102853": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103065": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102916": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102857": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102855": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103306": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104780": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102900": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102901": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "411": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "382": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1031391": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "589": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102814": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104924": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "330": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104901": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102780": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "617": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "266": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "574": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "265": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102433": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "187": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104659": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1180": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102931": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2675": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104524": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102701": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1033542": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102794": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103080": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "103194": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102798": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102908": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102841": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089828": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102956": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1388": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1099052": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102839": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1028524": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1028523": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "659": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102804": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1516": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102768": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1391": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "108": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "602": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102447": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "477": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098876": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102918": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1035053": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103085": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102970": {
+      "security_class_id": 21,
+      "security_class_name": "FuturesDerivativeContracts"
+    },
+    "1039281": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1409": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "105900": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1519": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102675": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1517": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1213": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "102766": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "568": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "210": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089221": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "579": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1092438": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "104507": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1092821": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103079": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "104788": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1079722": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "218": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102980": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103052": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103051": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102968": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1099011": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102806": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104745": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "431": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102816": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102914": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "353": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1029088": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102924": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102923": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1092946": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102925": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102926": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1094590": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "670": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1091587": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104902": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1427": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "321": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "466": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "688": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102876": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "448": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "335": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102942": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102858": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102917": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "544": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "306": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103236": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1028651": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "416": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102870": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1034852": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "734": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104536": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102854": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "583": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "230": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1098568": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1395": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102922": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "633": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2492": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098890": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1474": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "412": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "578": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "337": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "445": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103075": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102947": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102948": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "103354": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104487": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103022": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "376": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "379": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2670": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "580": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1041970": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102693": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1038681": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102878": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "432": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "326": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "562": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "563": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1042854": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102913": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103037": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "105916": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102896": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102946": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "103274": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102824": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "104521": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "282": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "231": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104919": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1534": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089454": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1095467": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1090219": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "191": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "721": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "316": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104872": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "726": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2214": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098868": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104618": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2336": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "262": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1091395": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103423": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089871": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102908": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102890": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102828": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1032626": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089259": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "385": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1098775": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "10102851": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "560": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "193": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1061759": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1483": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102418": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "621": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102929": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103180": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104599": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "10102945": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1076537": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1404": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1487": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1031532": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102985": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1079808": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "837": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "271": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "338": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103050": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102919": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1048301": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "384": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103053": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1040406": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1091932": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "105923": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103017": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102984": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102971": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102939": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1061439": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103091": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1397": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103063": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "2328": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104488": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104435": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089299": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103425": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103004": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "333": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "584": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104510": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102921": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "226": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "229": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2537": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "399": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "402": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "322": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "438": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "508": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089279": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "355": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "667": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102986": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "103224": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "340": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104823": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1061328": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1185": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "569": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102940": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1402": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102943": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1058153": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "543": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2329": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1029014": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104514": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1550": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1090103": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102953": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "103377": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103005": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "258": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1089261": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102436": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "484": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104516": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "220": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "506": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2471": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1060675": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102930": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098936": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1011522": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1095227": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1379": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "620": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1080576": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1081037": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102880": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102920": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1041144": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "104772": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104766": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102977": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102978": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "329": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "10102967": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102881": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103228": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1079809": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1094504": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1099024": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "2666": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103059": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "681": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "528": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089581": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102958": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103078": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102863": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "678": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "863": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "652": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "581": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103044": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102809": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1039686": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1028597": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1032183": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1038172": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1011566": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1029149": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1048915": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1079654": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1024375": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098701": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102590": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1032648": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1091771": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098843": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089140": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1094931": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1037119": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1093923": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1093858": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1041372": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102589": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1034455": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1077055": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1095860": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1041319": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089353": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1049161": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1028645": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1036664": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1080533": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1042126": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1041373": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1098669": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1039280": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1039073": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1050068": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1091678": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102842": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1247": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "365": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104594": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102966": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "505": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1027544": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "608": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "607": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1526": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1252": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "368": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "404": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102868": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102877": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "540": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1099092": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1520": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "228": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103081": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102874": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "396": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103058": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1089284": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1036702": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102869": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102831": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10103064": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1095412": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102519": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104619": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1097524": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102511": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "731": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "283": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "556": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "555": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102705": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1093060": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1061285": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1076921": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103373": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1035224": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102912": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102536": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102820": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102963": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102859": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10103042": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102800": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102993": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102936": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102864": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10103011": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102934": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102907": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10103086": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102955": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10103084": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102852": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102932": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10102860": {
+      "security_class_id": 35,
+      "security_class_name": "Tbills"
+    },
+    "10103030": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "1040786": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "261": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2521": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1089630": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "377": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "643": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "374": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "331": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1090160": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10102848": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1094633": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104551": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "395": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "2206": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "10102882": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1467": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "102776": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1037040": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "523": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "481": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "1098702": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "576": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "315": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "103407": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "190": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "232": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "645": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103006": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "490": {
+      "security_class_id": 5,
+      "security_class_name": "OTC"
+    },
+    "10102814": {
+      "security_class_id": 2,
+      "security_class_name": "LocalSecurity_OUT"
+    },
+    "2475": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1508": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "720": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1011582": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "104669": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "10103045": {
+      "security_class_id": 7,
+      "security_class_name": "PrivateBond_IN"
+    },
+    "10103015": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1011537": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    },
+    "1081412": {
+      "security_class_id": 1,
+      "security_class_name": "LocalSecurity_IN"
+    }
+  },
+  "errors": {
+    "1098751": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "1089631": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)"
+  }
+}
