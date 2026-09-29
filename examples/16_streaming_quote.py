@@ -19,7 +19,7 @@ import time
 
 from younit import Client, SymbolUpdate
 
-SYMBOLS = ["COMI"]
+SYMBOLS = ["VLMRA"]
 
 # How many seconds to stream before exiting
 STREAM_SECONDS = 5*2
