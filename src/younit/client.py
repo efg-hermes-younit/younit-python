@@ -90,7 +90,7 @@ _TOP_MOVERS_ELIGIBLE_CLASSES = frozenset({"LocalSecurity_IN", "LocalSecurity_OUT
 # NOT yet officially confirmed by the backend team — if they confirm a
 # different or fuller mapping (e.g. additional states like pre-open
 # auction), update this accordingly.
-_MARKET_STATUS_MAP = {"2": "open", "3": "closed"}
+_MARKET_STATUS_MAP = {"2": "open", "3": "closed", "20": "trade at last"}
 
 
 def _parse_next_working_day(message: str) -> datetime | None:
