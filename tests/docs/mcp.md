@@ -52,13 +52,13 @@ All safety controls are configured via environment variables — never in code.
 | `position` | Single position by symbol |
 | `buying_power` | Available buying power for a stock |
 | `top_movers` | Full tradeable universe sorted by change %, gainers first (live, takes a few seconds) |
-| `trending_stocks` | Most active stocks |
-| `search_stocks` | Search stocks by ticker or name |
+| `trending_stocks` | Most active stocks (includes same-day/T0 eligibility classification) |
+| `search_stocks` | Search stocks by ticker or name (includes same-day/T0 eligibility classification) |
 | `get_order` | Fetch an order by ID |
 | `funds` | List available investment funds |
 | `fund_performance` | Fund performance chart data |
 | `stock_info` | Detailed trading info for a stock (same data as `quote`) |
-| `list_stocks` | Full list of all EGX-listed stocks |
+| `list_stocks` | Full list of all EGX-listed stocks (includes same-day/T0 eligibility classification) |
 | `historical_prices` | OHLCV candle data (Day / Week / Month / Year) |
 | `streaming_quote` | Live price snapshot via the Lightstreamer feed |
 | `streaming_orders` | Live order status snapshot via the ActiveOrders stream |
@@ -68,7 +68,7 @@ All safety controls are configured via environment variables — never in code.
 | Tool | Description |
 |---|---|
 | `buy` | Place a limit or market buy order |
-| `sell` | Place a limit or market sell order |
+| `sell` | Place a limit or market sell order (t2/t0/t1 settlement via `settlement`) |
 | `cancel_order` | Cancel an open order |
 | `amend_order` | Modify quantity/price of an open order |
 

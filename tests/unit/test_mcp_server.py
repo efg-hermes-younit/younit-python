@@ -19,6 +19,13 @@ from younit.models.orders import Order
 from younit.models.streaming import TopMover
 
 
+def _sell_fn():
+    mcp_server._register_write_tools()
+    tool = mcp_server.app._tool_manager.get_tool("sell")
+    assert tool is not None
+    return tool.fn
+
+
 def _amend_order_fn():
     mcp_server._register_write_tools()
     tool = mcp_server.app._tool_manager.get_tool("amend_order")
@@ -94,6 +101,50 @@ class TestTopMoversTool:
         tool.fn()
 
         mock_client.get_top_movers.assert_called_once_with(market_id=1, limit=50)
+
+
+class TestSellToolSettlement:
+    """The settlement param (t2/t0/t1) must reach Client.sell() — it was
+    previously missing from the MCP tool signature entirely, silently
+    hardcoding the client's t2 default and making same-day (T0) sells
+    unreachable via MCP even after the core SDK fix landed.
+    """
+
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+        self._orig_safety = mcp_server._safety
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+        mcp_server._safety = self._orig_safety
+
+    def _no_cap_safety(self) -> SafetySettings:
+        settings = SafetySettings.__new__(SafetySettings)
+        settings.max_order_value_egp = 0
+        settings.max_daily_orders = 0
+        return settings
+
+    def test_settlement_defaults_to_t2(self) -> None:
+        mock_client = MagicMock()
+        mock_client.sell.return_value = Order(quantity=1, price=1.0)
+        mcp_server._client = mock_client
+        mcp_server._safety = self._no_cap_safety()
+
+        sell = _sell_fn()
+        sell(symbol="ABUK", qty=1, limit=1.0)
+
+        mock_client.sell.assert_called_once_with(symbol="ABUK", qty=1, limit=1.0, settlement="t2")
+
+    def test_settlement_t0_passed_through(self) -> None:
+        mock_client = MagicMock()
+        mock_client.sell.return_value = Order(quantity=1, price=1.0)
+        mcp_server._client = mock_client
+        mcp_server._safety = self._no_cap_safety()
+
+        sell = _sell_fn()
+        sell(symbol="ABUK", qty=1, limit=1.0, settlement="t0")
+
+        mock_client.sell.assert_called_once_with(symbol="ABUK", qty=1, limit=1.0, settlement="t0")
 
 
 class TestAmendOrderSafetyCheck:

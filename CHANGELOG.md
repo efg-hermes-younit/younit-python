@@ -21,7 +21,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   last), computed live over the streaming feed the same way the official
   EFG app does it.
 
-### Removed
+### Fixed
+- MCP `sell` tool was missing the `settlement` parameter entirely, silently
+  hardcoding the SDK's `"t2"` default — same-day (T0) sells (incl. limit
+  orders, fixed earlier in `Client.sell()`/`place_order()`) were unreachable
+  via MCP even though the underlying SDK already supported them. The tool
+  now accepts `settlement="t0"|"t1"|"t2"` and passes it through to
+  `Client.sell()`. `list_stocks`/`trending_stocks`/`search_stocks` MCP tool
+  docstrings also updated to document `security_class_name` and
+  `is_same_day_eligible` — these fields were already present in the
+  returned data (full `StockInfo.model_dump()`) but undocumented, so an AI
+  agent reading only the tool description wouldn't know to check them
+  before attempting a same-day order.
 - `top_gainers` / `top_losers` MCP tools. The backend team confirmed the
   underlying REST endpoint (`get_top_gainers_losers`) is not a dedicated
   server-side computation and may return incomplete/stale data — replaced

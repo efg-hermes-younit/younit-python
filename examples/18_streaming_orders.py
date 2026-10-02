@@ -24,7 +24,7 @@ import time
 
 from younit import Client, OrderUpdate
 
-SYMBOL = "VLMRA"
+SYMBOL = "ABUK"
 STREAM_SECONDS = 60*10  # watch for this long after placing
 
 

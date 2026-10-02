@@ -215,7 +215,9 @@ def trending_stocks(market_id: int = 1) -> list:  # type: ignore[return]
 
     Returns:
         List of stock info dicts with symbol, last price (EGP), change_pct (%),
-        and volume (shares).
+        volume (shares), security_class_name (e.g. "LocalSecurity_IN", "OTC";
+        null if unclassified), and is_same_day_eligible (bool; whether this
+        stock can be closed same-day via sell(settlement="t0")).
     """
     return [s.model_dump() for s in _get_client().trending_stocks(market_id=market_id)]
 
@@ -233,7 +235,10 @@ def search_stocks(query: str) -> list:  # type: ignore[return]
             e.g. "COM", "EFG", "HRHO".
 
     Returns:
-        List of matching stock info dicts with symbol and stock_id.
+        List of matching stock info dicts with symbol, stock_id,
+        security_class_name (e.g. "LocalSecurity_IN", "OTC"; null if
+        unclassified), and is_same_day_eligible (bool; whether this stock
+        can be closed same-day via sell(settlement="t0")).
     """
     return [s.model_dump() for s in _get_client().search_stocks(query)]
 
@@ -316,13 +321,19 @@ def list_stocks(market_id: int = 1) -> list:  # type: ignore[return]
     """List all stocks available on EGX.
 
     Returns the complete set of listed stocks with their ticker symbols and
-    internal stock IDs. Useful for discovering available tickers.
+    internal stock IDs. Useful for discovering available tickers, and for
+    checking a stock's same-day (T0) eligibility before attempting a
+    settlement="t0" sell (see the sell() tool).
 
     Args:
         market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
 
     Returns:
-        List of stock dicts, each with stock_id (integer) and symbol (ticker string).
+        List of stock dicts, each with stock_id (integer), symbol (ticker
+        string), security_class_name (e.g. "LocalSecurity_IN", "OTC"; null
+        if unclassified — a temporary snapshot-derived field, not live data),
+        and is_same_day_eligible (bool; True only if the stock is on the
+        live Intraday tradeable list — OTC stocks are never eligible).
     """
     return [s.model_dump() for s in _get_client().list_stocks(market_id=market_id)]
 
@@ -471,7 +482,7 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def sell(symbol: str, qty: int, limit: float | None = None) -> dict:  # type: ignore[return]
+    def sell(symbol: str, qty: int, limit: float | None = None, settlement: str = "t2") -> dict:  # type: ignore[return]
         """Place a sell order for an EGX-listed stock.
 
         Implements the full 3-call order placement flow automatically.
@@ -488,6 +499,16 @@ def _register_write_tools() -> None:
                 the quantity held (see position()).
             limit: Limit price in EGP. If omitted, places a market sell
                 at the current bid price.
+            settlement: Settlement timing, as a friendly string: "t2"
+                (default, normal settlement), "t0" (or its alias
+                "same_day", closes a position bought the same day), or
+                "t1" (T+1 settlement). Same-day (t0) limit sells are fully
+                supported, including at a specific limit price — not just
+                market orders. Only stocks with is_same_day_eligible=True
+                (see list_stocks()/trending_stocks()/search_stocks()) can
+                actually be closed same-day; OTC-classified stocks
+                (security_class_name == "OTC") are never eligible and the
+                exchange will reject the order.
 
         Returns:
             Dict with order details: stock_id, operation_type, quantity (shares),
@@ -496,7 +517,7 @@ def _register_write_tools() -> None:
         safety = _get_safety()
         check_order_value(qty, limit, safety)
         check_daily_limit(_order_counter, safety)
-        result = _get_client().sell(symbol=symbol, qty=qty, limit=limit)
+        result = _get_client().sell(symbol=symbol, qty=qty, limit=limit, settlement=settlement)
         _order_counter.increment()
         return result.model_dump(mode="json")
 
