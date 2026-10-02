@@ -1,11 +1,4 @@
-"""Unit tests for MCP server tool handlers (src/younit/mcp_server/server.py).
-
-Only ``amend_order`` is covered here — ``amend_fund_order`` has no MCP tool
-handler at all (no ``buy_fund``/``sell_fund``/``cancel_fund_order``/
-``amend_fund_order`` tools are registered anywhere in server.py; fund orders
-are only reachable via the SDK's ``Client``, never via the MCP server), so
-there is nothing to test for it.
-"""
+"""Unit tests for MCP server tool handlers (src/younit/mcp_server/server.py)."""
 
 from __future__ import annotations
 
@@ -15,7 +8,9 @@ import pytest
 
 from younit.mcp_server import server as mcp_server
 from younit.mcp_server.safety import SafetySettings
+from younit.models.market_data import StockInfo
 from younit.models.orders import Order
+from younit.models.portfolio import FundPosition, Position
 from younit.models.streaming import TopMover
 
 
@@ -24,6 +19,34 @@ def _sell_fn():
     tool = mcp_server.app._tool_manager.get_tool("sell")
     assert tool is not None
     return tool.fn
+
+
+def _buy_fund_fn():
+    mcp_server._register_write_tools()
+    tool = mcp_server.app._tool_manager.get_tool("buy_fund")
+    assert tool is not None
+    return tool.fn
+
+
+def _sell_fund_fn():
+    mcp_server._register_write_tools()
+    tool = mcp_server.app._tool_manager.get_tool("sell_fund")
+    assert tool is not None
+    return tool.fn
+
+
+def _cancel_fund_order_fn():
+    mcp_server._register_write_tools()
+    tool = mcp_server.app._tool_manager.get_tool("cancel_fund_order")
+    assert tool is not None
+    return tool.fn
+
+
+def _no_cap_safety() -> SafetySettings:
+    settings = SafetySettings.__new__(SafetySettings)
+    settings.max_order_value_egp = 0
+    settings.max_daily_orders = 0
+    return settings
 
 
 def _amend_order_fn():
@@ -145,6 +168,189 @@ class TestSellToolSettlement:
         sell(symbol="ABUK", qty=1, limit=1.0, settlement="t0")
 
         mock_client.sell.assert_called_once_with(symbol="ABUK", qty=1, limit=1.0, settlement="t0")
+
+
+class TestMarketStatusTool:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+
+    def test_registered(self) -> None:
+        assert mcp_server.app._tool_manager.get_tool("market_status") is not None
+
+    def test_wraps_client_market_status(self) -> None:
+        mock_client = MagicMock()
+        mock_client.market_status.return_value = "open"
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("market_status")
+        assert tool is not None
+        result = tool.fn(market_id=1, timeout_seconds=8.0)
+
+        mock_client.market_status.assert_called_once_with(market_id=1, timeout=8.0)
+        assert result == "open"
+
+
+class TestPositionsSplitTool:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+
+    def test_registered(self) -> None:
+        assert mcp_server.app._tool_manager.get_tool("positions_split") is not None
+
+    def test_splits_and_serializes_stock_and_fund_positions(self) -> None:
+        stock_pos = Position(quantity=10, averageCost=5.0)
+        fund_pos = Position(quantity=5, averageCost=2.0)
+        mock_client = MagicMock()
+        mock_client.positions_split.return_value = ([stock_pos], [fund_pos])
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("positions_split")
+        assert tool is not None
+        result = tool.fn(market_id=1)
+
+        mock_client.positions_split.assert_called_once_with(market_id=1)
+        assert result == {
+            "stock_positions": [stock_pos.model_dump()],
+            "fund_positions": [fund_pos.model_dump()],
+        }
+
+
+class TestFundPositionsTool:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+
+    def test_registered(self) -> None:
+        assert mcp_server.app._tool_manager.get_tool("fund_positions") is not None
+
+    def test_wraps_and_serializes(self) -> None:
+        fp = FundPosition(fund_id=42, quantity=100, averageCost=1.0)
+        mock_client = MagicMock()
+        mock_client.fund_positions.return_value = [fp]
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("fund_positions")
+        assert tool is not None
+        result = tool.fn(market_id=1)
+
+        mock_client.fund_positions.assert_called_once_with(market_id=1)
+        assert result == [fp.model_dump()]
+
+
+class TestStockClassificationTools:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+
+    def test_list_by_class_registered_and_wraps(self) -> None:
+        stock = StockInfo(stockId=1, symbol="SUCE", security_class_name="OTC")
+        mock_client = MagicMock()
+        mock_client.list_by_class.return_value = [stock]
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("list_by_class")
+        assert tool is not None
+        result = tool.fn(class_names=["OTC"])
+
+        mock_client.list_by_class.assert_called_once_with("OTC")
+        assert result == [stock.model_dump()]
+
+    def test_list_same_day_eligible_registered_and_wraps(self) -> None:
+        stock = StockInfo(stockId=2, symbol="ABUK", is_same_day_eligible=True)
+        mock_client = MagicMock()
+        mock_client.list_same_day_eligible.return_value = [stock]
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("list_same_day_eligible")
+        assert tool is not None
+        result = tool.fn()
+
+        mock_client.list_same_day_eligible.assert_called_once_with()
+        assert result == [stock.model_dump()]
+
+    def test_list_otc_registered_and_wraps(self) -> None:
+        stock = StockInfo(stockId=3, symbol="SUCE", security_class_name="OTC")
+        mock_client = MagicMock()
+        mock_client.list_otc.return_value = [stock]
+        mcp_server._client = mock_client
+
+        tool = mcp_server.app._tool_manager.get_tool("list_otc")
+        assert tool is not None
+        result = tool.fn()
+
+        mock_client.list_otc.assert_called_once_with()
+        assert result == [stock.model_dump()]
+
+
+class TestFundOrderTools:
+    def setup_method(self) -> None:
+        self._orig_client = mcp_server._client
+        self._orig_safety = mcp_server._safety
+
+    def teardown_method(self) -> None:
+        mcp_server._client = self._orig_client
+        mcp_server._safety = self._orig_safety
+
+    def test_buy_fund_registered_and_wraps(self) -> None:
+        mock_client = MagicMock()
+        mock_client.buy_fund.return_value = Order(fund_id=7, quantity=1, price=1.0)
+        mcp_server._client = mock_client
+        mcp_server._safety = _no_cap_safety()
+
+        buy_fund = _buy_fund_fn()
+        result = buy_fund(fund_id=7, qty=1, price=1.0)
+
+        mock_client.buy_fund.assert_called_once_with(
+            fund_id=7, qty=1, price=1.0, is_ipo_fund=False
+        )
+        assert result["fund_id"] == 7
+
+    def test_buy_fund_rejects_order_exceeding_safety_cap(self) -> None:
+        mock_client = MagicMock()
+        mcp_server._client = mock_client
+        settings = SafetySettings.__new__(SafetySettings)
+        settings.max_order_value_egp = 100  # tiny cap
+        settings.max_daily_orders = 0
+        mcp_server._safety = settings
+
+        buy_fund = _buy_fund_fn()
+        with pytest.raises(ValueError, match="safety cap"):
+            buy_fund(fund_id=7, qty=1000, price=100.0)  # 100,000 EGP > 100
+
+        mock_client.buy_fund.assert_not_called()
+
+    def test_sell_fund_registered_and_wraps(self) -> None:
+        mock_client = MagicMock()
+        mock_client.sell_fund.return_value = Order(fund_id=7, quantity=1, price=1.0)
+        mcp_server._client = mock_client
+        mcp_server._safety = _no_cap_safety()
+
+        sell_fund = _sell_fund_fn()
+        result = sell_fund(fund_id=7, qty=1, price=1.0)
+
+        mock_client.sell_fund.assert_called_once_with(fund_id=7, qty=1, price=1.0)
+        assert result["fund_id"] == 7
+
+    def test_cancel_fund_order_registered_and_wraps(self) -> None:
+        mock_client = MagicMock()
+        mock_client.cancel_fund_order.return_value = True
+        mcp_server._client = mock_client
+
+        cancel_fund_order = _cancel_fund_order_fn()
+        result = cancel_fund_order(order_id=123)
+
+        mock_client.cancel_fund_order.assert_called_once_with(123)
+        assert result == {"success": True, "order_id": 123}
 
 
 class TestAmendOrderSafetyCheck:

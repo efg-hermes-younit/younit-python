@@ -97,6 +97,27 @@ def quote(symbol: str) -> dict:  # type: ignore[return]
 
 
 @app.tool()
+def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:  # type: ignore[return]
+    """Check whether the EGX market is currently open or closed, live.
+
+    Uses the live MarketStatistics stream — there is no REST endpoint for
+    this. Safe to call for read-only tools regardless of current market
+    hours; a closed market just means quotes/movers reflect the last session.
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+        timeout_seconds: Max seconds to wait for a live status update before
+            giving up. Default 8 seconds.
+
+    Returns:
+        "open" or "closed" if a recognized status arrived in time,
+        "unknown" if an unrecognized status code arrived, or
+        "unreachable" if no update arrived at all within the timeout.
+    """
+    return _get_client().market_status(market_id=market_id, timeout=timeout_seconds)
+
+
+@app.tool()
 def account_info() -> dict:  # type: ignore[return]
     """Get the authenticated client's account information and profile list.
 
@@ -152,6 +173,33 @@ def position(symbol: str) -> dict | None:  # type: ignore[return]
     """
     pos = _get_client().position(symbol)
     return pos.model_dump() if pos else None
+
+
+@app.tool()
+def positions_split(market_id: int = 1) -> dict:  # type: ignore[return]
+    """Get the client's positions, reliably split into stocks vs funds.
+
+    Works around a confirmed backend bug where positions() mixes stock and
+    fund rows together, with fund rows reporting is_fund=False and a
+    garbled symbol. Use this instead of positions() whenever you need to
+    tell stock holdings apart from fund holdings, or to find fund
+    positions at all (fund_positions() is confirmed to return empty for
+    this account even when real fund holdings exist).
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+
+    Returns:
+        Dict with "stock_positions" and "fund_positions", each a list of
+        position dicts (quantity, average_price (EGP), current_price (EGP),
+        market_value (EGP), unrealized_pnl (EGP)). For fund_positions
+        entries, use "name" for display, not "symbol" (confirmed garbled).
+    """
+    stock_positions, fund_positions = _get_client().positions_split(market_id=market_id)
+    return {
+        "stock_positions": [p.model_dump() for p in stock_positions],
+        "fund_positions": [p.model_dump() for p in fund_positions],
+    }
 
 
 @app.tool()
@@ -299,6 +347,26 @@ def fund_performance(fund_id: int, market_id: int = 1, filter_type: int = 3) -> 
 
 
 @app.tool()
+def fund_positions(market_id: int = 1) -> list:  # type: ignore[return]
+    """Get the client's current open fund positions.
+
+    WARNING: confirmed live to return an empty list for this account even
+    when real fund holdings exist (a backend-side issue with the underlying
+    endpoint). Use positions_split() instead until this is resolved — its
+    "fund_positions" half reliably reflects real holdings.
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+
+    Returns:
+        List of fund position dicts (fund_id, name, quantity,
+        qty_valid_for_sale, average_price, market_price, currency). Likely
+        empty — see warning above.
+    """
+    return [p.model_dump() for p in _get_client().fund_positions(market_id=market_id)]
+
+
+@app.tool()
 def stock_info(symbol: str) -> dict:  # type: ignore[return]
     """Get detailed trading information for a specific EGX stock.
 
@@ -336,6 +404,54 @@ def list_stocks(market_id: int = 1) -> list:  # type: ignore[return]
         live Intraday tradeable list — OTC stocks are never eligible).
     """
     return [s.model_dump() for s in _get_client().list_stocks(market_id=market_id)]
+
+
+@app.tool()
+def list_by_class(class_names: list[str]) -> list:  # type: ignore[return]
+    """List EGX stocks filtered by one or more security classifications.
+
+    Args:
+        class_names: One or more security_class_name values to include (OR
+            logic — a stock matching ANY of them is included), e.g.
+            ["OTC"] or ["LocalSecurity_IN", "LocalSecurity_OUT"]. See
+            list_stocks()'s security_class_name field for recognized
+            values. An unrecognized value raises an error rather than
+            silently returning nothing.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()) whose
+        security_class_name is in class_names.
+    """
+    return [s.model_dump() for s in _get_client().list_by_class(*class_names)]
+
+
+@app.tool()
+def list_same_day_eligible() -> list:  # type: ignore[return]
+    """List all EGX stocks eligible for same-day (T0) trading.
+
+    Thin convenience wrapper equivalent to filtering list_stocks() by
+    is_same_day_eligible=True. Use this to quickly find candidates for a
+    sell(settlement="t0") order instead of filtering list_stocks() yourself.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()), all with
+        is_same_day_eligible=True.
+    """
+    return [s.model_dump() for s in _get_client().list_same_day_eligible()]
+
+
+@app.tool()
+def list_otc() -> list:  # type: ignore[return]
+    """List all OTC-classified EGX stocks.
+
+    Equivalent to list_by_class(["OTC"]). OTC stocks are never eligible for
+    same-day (T0) settlement.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()), all with
+        security_class_name == "OTC".
+    """
+    return [s.model_dump() for s in _get_client().list_otc()]
 
 
 @app.tool()
@@ -522,6 +638,62 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
+    def buy_fund(fund_id: int, qty: int, price: float, is_ipo_fund: bool = False) -> dict:  # type: ignore[return]
+        """Place a buy order for a mutual fund.
+
+        Funds have no market-order concept — price is always required
+        (unlike buy(), which allows an omitted limit for a market order).
+
+        Safety controls apply:
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
+        - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
+        - EFG_SIMULATION: If true, order goes to paper trading environment
+
+        Args:
+            fund_id: Internal fund identifier (integer). Get from funds().
+            qty: Number of fund units to buy (positive integer).
+            price: Order price in EGP — use the fund's current NAV (see funds()).
+            is_ipo_fund: True if this is an IPO fund subscription. Default False.
+
+        Returns:
+            Dict with order details: fund_id, operation_type, quantity (units), price.
+        """
+        safety = _get_safety()
+        check_order_value(qty, price, safety)
+        check_daily_limit(_order_counter, safety)
+        result = _get_client().buy_fund(
+            fund_id=fund_id, qty=qty, price=price, is_ipo_fund=is_ipo_fund
+        )
+        _order_counter.increment()
+        return result.model_dump(mode="json")
+
+    @app.tool()
+    def sell_fund(fund_id: int, qty: int, price: float) -> dict:  # type: ignore[return]
+        """Place a sell (redemption) order for a mutual fund.
+
+        Safety controls apply:
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
+        - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
+        - EFG_SIMULATION: If true, order goes to paper trading environment
+
+        Args:
+            fund_id: Internal fund identifier (integer). Get from
+                fund_positions() or positions_split()'s "fund_positions".
+            qty: Number of fund units to sell (positive integer). Cannot
+                exceed qty_valid_for_sale on the held position.
+            price: Order price in EGP — use the position's current market_price.
+
+        Returns:
+            Dict with order details: fund_id, operation_type, quantity (units), price.
+        """
+        safety = _get_safety()
+        check_order_value(qty, price, safety)
+        check_daily_limit(_order_counter, safety)
+        result = _get_client().sell_fund(fund_id=fund_id, qty=qty, price=price)
+        _order_counter.increment()
+        return result.model_dump(mode="json")
+
+    @app.tool()
     def cancel_order(order_id: int) -> dict:  # type: ignore[return]
         """Cancel an open order.
 
@@ -536,6 +708,23 @@ def _register_write_tools() -> None:
             Dict with {"success": true} if the cancellation was accepted.
         """
         success = _get_client().cancel_order(order_id)
+        return {"success": success, "order_id": order_id}
+
+    @app.tool()
+    def cancel_fund_order(order_id: int) -> dict:  # type: ignore[return]
+        """Cancel an open fund order.
+
+        Uses the dedicated fund cancel endpoint — separate from
+        cancel_order(), which is for stocks.
+
+        Args:
+            order_id: The numeric fund order identifier (integer).
+                Get this from the response of buy_fund() or sell_fund().
+
+        Returns:
+            Dict with {"success": true} if the cancellation was accepted.
+        """
+        success = _get_client().cancel_fund_order(order_id)
         return {"success": success, "order_id": order_id}
 
     @app.tool()

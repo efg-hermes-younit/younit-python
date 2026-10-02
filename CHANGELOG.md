@@ -20,6 +20,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   tradeable-stock universe sorted by `change_pct` (gainers first, losers
   last), computed live over the streaming feed the same way the official
   EFG app does it.
+- 9 new MCP tools, closing a gap where several `Client` methods already
+  demonstrated in `examples/` had no MCP tool equivalent: `market_status`,
+  `positions_split`, `fund_positions`, `list_by_class`,
+  `list_same_day_eligible`, `list_otc` (read tools), and `buy_fund`,
+  `sell_fund`, `cancel_fund_order` (write tools, same safety controls as
+  `buy`/`sell`). MCP server now registers 30 tools total (23 read + 7 write).
 
 ### Fixed
 - MCP `sell` tool was missing the `settlement` parameter entirely, silently
