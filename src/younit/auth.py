@@ -265,7 +265,8 @@ class IdentityProvider:
             _log.info("server_token_expired_or_missing", action="refetching")
             self._fetch_server_token()
 
-        assert self._server_token is not None
+        if self._server_token is None:
+            raise AuthError("Server token unavailable after fetch attempt.")
 
         url = f"{self._settings.identity_url}/connect/iframe-access"
 

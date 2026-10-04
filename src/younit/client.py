@@ -318,7 +318,7 @@ class Client:
             if bp.profile_id is not None:
                 self._cached_profile_id = bp.profile_id
         except Exception:
-            pass
+            _log.warning("profile_id_fetch_failed", exc_info=True)
         return self._cached_profile_id
 
     # ------------------------------------------------------------------
