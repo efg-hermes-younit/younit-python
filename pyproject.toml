@@ -28,7 +28,7 @@ dependencies = [
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
-    "structlog>=24.1",
+    "structlog>=26.1.0",
     # mcp 2.x renamed FastMCP to MCPServer and changed other APIs — src/younit/mcp_server/server.py
     # uses the v1 FastMCP API and needs migration before upgrading past mcp 2.0.
     # See https://py.sdk.modelcontextprotocol.io/v2/migration/ for the migration guide when that work happens.
