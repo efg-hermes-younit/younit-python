@@ -32,7 +32,7 @@ dependencies = [
     # mcp 2.x renamed FastMCP to MCPServer and changed other APIs — src/younit/mcp_server/server.py
     # uses the v1 FastMCP API and needs migration before upgrading past mcp 2.0.
     # See https://py.sdk.modelcontextprotocol.io/v2/migration/ for the migration guide when that work happens.
-    "mcp>=1.0,<2",
+    "mcp>=2.2.0,<3",
     "lightstreamer-client-lib>=2.0",
     "tzdata; sys_platform == 'win32'",
 ]
