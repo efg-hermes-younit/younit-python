@@ -453,7 +453,7 @@ class StreamingClient:
         sub_handle = Subscription(
             stream_type=stream_type,
             item=item,
-            on_update=on_update,  # type: ignore[arg-type]
+            on_update=on_update,
             on_error=on_error,
         )
 
@@ -493,7 +493,7 @@ class StreamingClient:
     def _do_connect(self) -> None:
         """Create and connect a LightstreamerClient (called under _lock)."""
         try:
-            from lightstreamer.client import LightstreamerClient  # type: ignore[import]
+            from lightstreamer.client import LightstreamerClient  # type: ignore[import-untyped]
         except ImportError as exc:
             raise StreamingError(
                 "The 'lightstreamer-client-lib' package is required for streaming. "
@@ -532,7 +532,7 @@ class StreamingClient:
     ) -> Any:  # noqa: ANN401 — wrapping dynamic Lightstreamer subscription object
         """Build a Lightstreamer Subscription object with the given parameters."""
         try:
-            from lightstreamer.client import Subscription as LSSubscription  # type: ignore[import]
+            from lightstreamer.client import Subscription as LSSubscription
         except ImportError as exc:
             raise StreamingError(
                 "The 'lightstreamer-client-lib' package is required for streaming. "

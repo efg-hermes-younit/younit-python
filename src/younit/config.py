@@ -145,8 +145,7 @@ class Settings(BaseSettings):
     default_market_id: int = Field(
         default=1,
         description=(
-            "Default market identifier. 1 = EGX (Egypt Stock Exchange). "
-            "Set EFG_DEFAULT_MARKET_ID."
+            "Default market identifier. 1 = EGX (Egypt Stock Exchange). Set EFG_DEFAULT_MARKET_ID."
         ),
         gt=0,
     )
@@ -160,8 +159,7 @@ class Settings(BaseSettings):
     streaming_adapter_trading: str = Field(
         default="PROXY_MarketBeatTrading",
         description=(
-            "Lightstreamer adapter for the ActiveOrders stream. "
-            "Set EFG_STREAMING_ADAPTER_TRADING."
+            "Lightstreamer adapter for the ActiveOrders stream. Set EFG_STREAMING_ADAPTER_TRADING."
         ),
     )
 
@@ -182,11 +180,11 @@ class Settings(BaseSettings):
 
     @field_validator("scopes", mode="before")
     @classmethod
-    def parse_scopes(cls, v: object) -> list[str]:
+    def parse_scopes(cls, v: str | list[str]) -> list[str]:
         """Allow scopes to be provided as a space-separated string."""
         if isinstance(v, str):
             return v.split()
-        return list(v)  # type: ignore[arg-type]
+        return v
 
     @property
     def server_select_header(self) -> str:

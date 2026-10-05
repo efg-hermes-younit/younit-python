@@ -91,7 +91,7 @@ class Position(BaseModel):
 
     @field_validator("symbol", mode="before")
     @classmethod
-    def _strip_exchange_suffix(cls, v: object) -> str | None:
+    def _strip_exchange_suffix(cls, v: object) -> object:
         # Raw value is e.g. "FWRY.CA"; strip the exchange suffix, same
         # convention as SymbolCache.load and endpoints/market_data.py.
         if isinstance(v, str) and v:
@@ -165,7 +165,7 @@ class FundPosition(BaseModel):
 
     @field_validator("symbol", mode="before")
     @classmethod
-    def _strip_exchange_suffix(cls, v: object) -> str | None:
+    def _strip_exchange_suffix(cls, v: object) -> object:
         # Raw value is e.g. "SIGP.CA"; same suffix-stripping convention as
         # Position.symbol.
         if isinstance(v, str) and v:

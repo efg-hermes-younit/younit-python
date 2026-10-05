@@ -148,6 +148,7 @@ def get_fund_performance(
     if not data or not isinstance(data, list):
         return FundPerformance(fund_id=fund_id, filter_type=filter_type)
     from younit.models.funds import PerformanceDataPoint
+
     points = [PerformanceDataPoint.model_validate(item) for item in data]
     return FundPerformance(fund_id=fund_id, filter_type=filter_type, chart_data=points)
 
