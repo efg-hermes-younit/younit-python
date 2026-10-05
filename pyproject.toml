@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "httpx[http2]>=0.27",
-    "pydantic>=2.7",
+    "pydantic>=2.13.5",
     "pydantic-settings>=2.3",
     "structlog>=24.1",
     # mcp 2.x renamed FastMCP to MCPServer and changed other APIs — src/younit/mcp_server/server.py
