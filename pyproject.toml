@@ -51,7 +51,7 @@ dev = [
     "cyclonedx-bom>=4.4",
 ]
 ai-demo = [
-    "anthropic>=1.2.0",
+    "anthropic>=1.11.0",
     "openai>=3.6.0",
     "python-dotenv>=1.2.2",
 ]
