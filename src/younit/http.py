@@ -53,7 +53,7 @@ _RETRY_BACKOFF_BASE = 0.5  # seconds; doubles each attempt
 
 
 def _build_user_agent() -> str:
-    return f"younit-python/{__version__} (+https://github.com/efg-hermes-younit/younit-python)"
+    return f"younit-python/{__version__} (+https://github.com/efg-hermes-younit/younit-python-sdk)"
 
 
 def build_default_headers(settings: Settings) -> dict[str, str]:

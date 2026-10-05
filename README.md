@@ -5,7 +5,7 @@ Python SDK and MCP server for the EFG ONE Trading API.
 [![PyPI](https://img.shields.io/pypi/v/younit-sdk)](https://pypi.org/project/younit-sdk/)
 [![Python](https://img.shields.io/pypi/pyversions/younit-sdk)](https://pypi.org/project/younit-sdk/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
-[![CI](https://github.com/efg-hermes-younit/younit-python/actions/workflows/ci.yml/badge.svg)](https://github.com/efg-hermes-younit/younit-python/actions/workflows/ci.yml)
+[![CI](https://github.com/efg-hermes-younit/younit-python-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/efg-hermes-younit/younit-python-sdk/actions/workflows/ci.yml)
 ## Installation
 
 Requires [uv](https://github.com/astral-sh/uv) — it manages Python versions itself, so you don't need Python pre-installed.
@@ -21,7 +21,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Then clone and install:
 
 ```bash
-git clone https://github.com/efg-hermes-younit/younit-python.git
+git clone https://github.com/efg-hermes-younit/younit-python-sdk.git
 cd younit-python
 uv sync
 ```
