@@ -52,7 +52,7 @@ dev = [
 ]
 ai-demo = [
     "anthropic>=1.2.0",
-    "openai>=3.6.0",
+    "openai>=3.24.0",
     "python-dotenv>=1.2.2",
 ]
 
