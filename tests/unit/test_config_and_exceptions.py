@@ -125,9 +125,7 @@ class TestSettings:
         assert s.company_code == "003"
         assert s.accept_language == "en"
 
-    def test_default_values(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
-    ) -> None:
+    def test_default_values(self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
         monkeypatch.chdir(tmp_path)  # no .env file in tmp_path
         for var in ("EFG_SIMULATION", "EFG_IDENTITY_URL"):
             monkeypatch.delenv(var, raising=False)

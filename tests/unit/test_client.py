@@ -1129,9 +1129,7 @@ class TestTradingConvenienceWrappers:
         result = client.buy_market("COMI", 5, confirm=True, confirm_timeout=1.0)
 
         assert result == "order"
-        buy_spy.assert_called_once_with(
-            "COMI", 5, limit=None, confirm=True, confirm_timeout=1.0
-        )
+        buy_spy.assert_called_once_with("COMI", 5, limit=None, confirm=True, confirm_timeout=1.0)
 
     def test_buy_limit_calls_buy_correctly(self):
         client = Client.__new__(Client)
@@ -1327,7 +1325,6 @@ class TestPlaceFundOrder:
             client.close()
 
 
-
 class TestAmendFundOrder:
     def test_sends_only_quantity_and_price_no_profile_id(self, respx_mock):
         client = _make_client(respx_mock)
@@ -1360,9 +1357,9 @@ class TestAmendFundOrder:
 class TestCancelFundOrder:
     def test_calls_dedicated_fund_cancel_endpoint_no_body(self, respx_mock):
         client = _make_client(respx_mock)
-        cancel_route = respx_mock.post(
-            f"{FAKE_BASE_URL}/api/v1/orders/fund/54262884/cancel"
-        ).mock(return_value=httpx.Response(200, json={"data": True, "messages": []}))
+        cancel_route = respx_mock.post(f"{FAKE_BASE_URL}/api/v1/orders/fund/54262884/cancel").mock(
+            return_value=httpx.Response(200, json={"data": True, "messages": []})
+        )
 
         try:
             result = client.cancel_fund_order(54262884)
@@ -1615,6 +1612,3 @@ class TestGetTopMovers:
         assert {m.symbol for m in movers} == {"SYM0", "SYM1", "SYM3", "SYM4", "SYM5"}
         # Every stock, including the laggard, still gets unsubscribed.
         assert len(client.streaming.unsubscribed_subs) == 6
-
-
-

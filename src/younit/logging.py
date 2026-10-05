@@ -111,4 +111,4 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     Returns:
         A bound structlog logger with redaction pre-configured.
     """
-    return structlog.get_logger(name)  # type: ignore[return-value]
+    return structlog.get_logger(name)  # type: ignore[no-any-return]

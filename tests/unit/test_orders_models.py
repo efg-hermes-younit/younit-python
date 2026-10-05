@@ -207,4 +207,3 @@ class TestFundOrderUpdateRequestToApiDict:
         data = request.to_api_dict()
 
         assert data == {"price": 15.0}
-

@@ -164,7 +164,7 @@ def cancel_order(
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    request = CancelOrderRequest(profileId=profile_id)
+    request = CancelOrderRequest(profile_id=profile_id)
 
     _log.info("cancelling_order", order_id=order_id, profile_id=profile_id)
     response = http.post(url, headers=headers, json=request.to_api_dict())
@@ -222,7 +222,7 @@ def amend_order(
         "Content-Type": "application/json",
     }
     request = UpdateOrderRequest(
-        profileId=profile_id,
+        profile_id=profile_id,
         quantity=quantity,
         price=price,
     )

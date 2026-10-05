@@ -115,11 +115,17 @@ warn_return_any = true
 warn_unused_configs = true
 show_error_codes = true
 pretty = true
+plugins = ["pydantic.mypy"]
 exclude = ["tests/", "examples/", "scripts/", "docs/"]
 
 [[tool.mypy.overrides]]
 module = ["structlog.*", "mcp.*"]
 ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = false
+init_typed = true
+warn_required_dynamic_aliases = true
 
 # ---------------------------------------------------------------------------
 # Pytest
