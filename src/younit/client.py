@@ -737,7 +737,7 @@ class Client:
 
         Returns:
             List of :class:`~younit.models.market_data.StockInfo`,
-            deduplicated by stock id (Intraday ∪ OTC).
+            deduplicated by stock id (Intraday union OTC).
         """
         mid = market_id if market_id is not None else self._settings.default_market_id
         categories = _market_data.get_stock_list_types(

@@ -329,7 +329,12 @@ def list_stocks(market_id: int = 1) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def historical_prices(symbol: str, period: str = "Month", date_from: str | None = None, date_to: str | None = None) -> list:  # type: ignore[return]
+def historical_prices(
+    symbol: str,
+    period: str = "Month",
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list:  # type: ignore[return]
     """Get historical OHLCV (open/high/low/close/volume) price data for an EGX stock.
 
     Useful for charting, trend analysis, and building price context before
@@ -354,7 +359,9 @@ def historical_prices(symbol: str, period: str = "Month", date_from: str | None 
         - close: Closing price in EGP
         - volume: Number of shares traded in this period
     """
-    candles = _get_client().historical_prices(symbol=symbol, period=period, date_from=date_from, date_to=date_to)
+    candles = _get_client().historical_prices(
+        symbol=symbol, period=period, date_from=date_from, date_to=date_to
+    )
     return [c.model_dump(mode="json") for c in candles]
 
 
