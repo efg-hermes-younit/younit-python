@@ -207,7 +207,9 @@ class Order(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     order_id: int | None = Field(
-        default=None, validation_alias=AliasChoices("orderID", "OrderID", "orderId"), alias="OrderID"
+        default=None,
+        validation_alias=AliasChoices("orderID", "OrderID", "orderId"),
+        alias="OrderID",
     )
     stock_id: int | None = Field(
         default=None,
