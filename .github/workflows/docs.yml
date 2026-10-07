@@ -39,6 +39,13 @@ jobs:
           cp README.md docs/index.md
           cp tests/docs/mcp.md docs/mcp.md
           cp CHANGELOG.md docs/changelog.md
+          # Point links to repo files (CONTRIBUTING.md, examples/, ...) at GitHub; docs/x.md links stay on the site.
+          REPO="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}"
+          sed -E -i \
+            -e 's|]\(docs/([^)]+)\)|](@@SITE@@\1)|g' \
+            -e "s|]\((\.\./)*([^)#:@][^):]*)\)|](${REPO}/\2)|g" \
+            -e 's|@@SITE@@||g' \
+            docs/index.md docs/mcp.md
           cat > docs/reference.md <<'EOF'
           # API Reference
 
