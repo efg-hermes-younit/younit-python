@@ -1,20 +1,18 @@
-name: Docs
+name: CI
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build Docs
+  lint-and-type-check:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,24 +28,87 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --extra dev
 
-      - name: Build mkdocs site
-        run: uv run mkdocs build --strict
+      # Critical only: syntax errors, undefined names, broken comparisons, security (bandit).
+      - name: ruff check (critical, blocking)
+        run: uv run ruff check src/ tests/ --select E9,F63,F7,F82,S
 
-      - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/
+      - name: ruff check (all rules, warning only)
+        run: uv run ruff check src/ tests/
+        continue-on-error: true
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
+      - name: ruff format check (warning only)
+        run: uv run ruff format --check src/ tests/
+        continue-on-error: true
+
+      - name: mypy (warning only)
+        run: uv run mypy src/
+        continue-on-error: true
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Overrides the 3.11 pin in .python-version so each matrix leg really uses its version.
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest tests/unit/ \
+            --cov=src/younit \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            -v
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    name: Build Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - name: Verify distributions
+        run: |
+          ls -la dist/
+          uv run python -c "import zipfile; zf = zipfile.ZipFile('$(ls dist/*.whl | head -1)'); print('Wheel contents:'); [print(' ', f) for f in zf.namelist()]"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
