@@ -1,18 +1,20 @@
-name: CI
+name: Docs
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  lint-and-type-check:
-    name: Lint & Type Check
+  build:
+    name: Build Docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,85 +32,64 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      # Critical only: syntax errors, undefined names, broken comparisons, security (bandit).
-      - name: ruff check (critical, blocking)
-        run: uv run ruff check src/ tests/ --select E9,F63,F7,F82,S
-
-      - name: ruff check (all rules, warning only)
-        run: uv run ruff check src/ tests/
-        continue-on-error: true
-
-      - name: ruff format check (warning only)
-        run: uv run ruff format --check src/ tests/
-        continue-on-error: true
-
-      - name: mypy (warning only)
-        run: uv run mypy src/
-        continue-on-error: true
-
-  test:
-    name: Test (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    # Overrides the 3.11 pin in .python-version so each matrix leg really uses its version.
-    env:
-      UV_PYTHON: ${{ matrix.python-version }}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync --extra dev
-
-      - name: Run unit tests with coverage
+      # The repo has no docs/ folder yet, so the site is assembled from existing files at build time.
+      - name: Assemble docs
         run: |
-          uv run pytest tests/unit/ \
-            --cov=src/younit \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            -v
+          mkdir -p docs
+          cp README.md docs/index.md
+          cp tests/docs/mcp.md docs/mcp.md
+          cp CHANGELOG.md docs/changelog.md
+          cat > docs/reference.md <<'EOF'
+          # API Reference
 
-      - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v4
+          ## Client
+
+          ::: younit.client.Client
+
+          ## Exceptions
+
+          ::: younit.exceptions
+
+          ## Models
+
+          ::: younit.models.market_data
+
+          ::: younit.models.account
+
+          ::: younit.models.portfolio
+
+          ::: younit.models.orders
+
+          ::: younit.models.funds
+
+          ::: younit.models.streaming
+          EOF
+          cat > mkdocs.ci.yml <<'EOF'
+          INHERIT: mkdocs.yml
+          nav:
+            - Home: index.md
+            - MCP Server: mcp.md
+            - API Reference: reference.md
+            - Changelog: changelog.md
+          EOF
+
+      # No --strict: README/MCP pages link to repo files (LICENSE, examples/) that aren't part of the site.
+      - name: Build mkdocs site
+        run: uv run mkdocs build -f mkdocs.ci.yml
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          files: coverage.xml
-          fail_ci_if_error: false
+          path: site/
 
-  build:
-    name: Build Distribution
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Build wheel and sdist
-        run: uv build
-
-      - name: Verify distributions
-        run: |
-          ls -la dist/
-          uv run python -c "import zipfile; zf = zipfile.ZipFile('$(ls dist/*.whl | head -1)'); print('Wheel contents:'); [print(' ', f) for f in zf.namelist()]"
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ github.sha }}
-          path: dist/
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
