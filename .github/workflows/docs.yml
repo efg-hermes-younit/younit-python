@@ -85,7 +85,7 @@ jobs:
         run: uv run mkdocs build -f mkdocs.ci.yml
 
       - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site/
 
