@@ -9,10 +9,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed - Breaking
+- Authentication now uses TRADING_ID and API_KEY via the public-keys token endpoint; EFG_PARTNER_ID, EFG_PARTNER_SECRET and EFG_TRADING_UUID are removed.
+- Removed obsolete identity-host and OAuth-scope configuration. REST hosts
+  are unchanged; Lightstreamer uses the trading ID and the refreshed token.
+- The token response parser uses the production `accessToken`, `expiresIn`,
+  and `tokenType` fields, accepting them inside `data` or at the top level.
+
 ### Added
 - Initial implementation of the EFG ONE Python SDK
 - `Client` class with full trading API coverage
-- Automatic token lifecycle management (server → client token)
+- Automatic token lifecycle management with proactive and 401-triggered refresh
 - MCP server with configurable safety controls
 - Structured logging with mandatory credential redaction
 - GitHub Actions CI/CD workflows

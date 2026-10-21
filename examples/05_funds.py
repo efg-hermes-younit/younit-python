@@ -5,7 +5,7 @@ This example demonstrates:
 - Fetching fund performance chart data
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client

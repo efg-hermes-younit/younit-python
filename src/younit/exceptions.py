@@ -52,7 +52,7 @@ class AuthError(EFGError):
 
 
 class InvalidCredentials(AuthError):  # noqa: N818
-    """Partner ID or partner secret was rejected by the identity provider."""
+    """TRADING_ID or API_KEY was rejected by the token endpoint."""
 
 
 class TokenExpired(AuthError):  # noqa: N818

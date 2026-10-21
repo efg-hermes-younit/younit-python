@@ -11,7 +11,7 @@ until settlement completes (end of day) — same T+ settlement pattern
 observed for stocks. Run this a day after buying, not immediately.
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 - You must hold units in at least one fund (see the fund buy example)
 """
 

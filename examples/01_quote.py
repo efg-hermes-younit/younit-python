@@ -8,7 +8,7 @@ The quote() call returns a Quote object (see models/market_data.py for
 the full field list and types) — the fields used below are a subset.
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client

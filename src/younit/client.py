@@ -1,16 +1,15 @@
 """Younit Trading API — Python SDK Client.
 
 The :class:`Client` is the single entry point for all SDK operations.
-Construct one Client per end user (per ``tradingUuid``).
+Construct one Client per end user (per ``tradingId``).
 
 Example::
 
     from younit import Client
 
     client = Client(
-        partner_id="your-partner-id",
-        partner_secret="your-partner-secret",
-        trading_uuid="client-trading-uuid",
+        trading_id="your-trading-id",
+        api_key="your-api-key",
         simulation=True,   # Always start in simulation mode
     )
 
@@ -19,7 +18,7 @@ Example::
 
 Or use environment variables (recommended for production)::
 
-    # Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+    # Set TRADING_ID and API_KEY in your environment
     client = Client()
 """
 
@@ -32,6 +31,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
+from pydantic import ValidationError
 
 from younit import _security_class_snapshot
 from younit.auth import IdentityProvider, TokenStore
@@ -50,8 +50,8 @@ from younit.enums import (
     OrderVia,
     SubOrderVia,
 )
-from younit.exceptions import OrderRejected
-from younit.http import build_default_headers, build_httpx_client, raise_for_status
+from younit.exceptions import ConfigError, OrderRejected
+from younit.http import BearerTokenAuth, build_default_headers, build_httpx_client, raise_for_status
 from younit.logging import configure_logging, get_logger
 from younit.models.account import AccountInfo
 from younit.models.funds import Fund, FundOrderHistoryEntry, FundPerformance
@@ -116,14 +116,11 @@ class Client:
     All methods are synchronous. There is no async variant in v0.1.
 
     Args:
-        partner_id: Partner identifier. Overrides ``EFG_PARTNER_ID``.
-        partner_secret: Partner secret. Overrides ``EFG_PARTNER_SECRET``.
-        trading_uuid: Client trading UUID. Overrides ``EFG_TRADING_UUID``.
+        trading_id: Trading identifier. Overrides ``TRADING_ID``.
+        api_key: Authentication secret. Overrides ``API_KEY``.
         simulation: If True, uses simulation mode. Overrides ``EFG_SIMULATION``.
         company_code: Company code header. Overrides ``EFG_COMPANY_CODE``.
-        identity_url: Identity provider URL. Overrides ``EFG_IDENTITY_URL``.
         accept_language: Language header. Overrides ``EFG_ACCEPT_LANGUAGE``.
-        scopes: OAuth scopes list. Overrides ``EFG_SCOPES``.
         timeout_seconds: Request timeout. Overrides ``EFG_TIMEOUT_SECONDS``.
         token_store: Custom token store implementation. Defaults to in-memory.
         lazy_auth: If True, defers authentication until first API call.
@@ -133,21 +130,18 @@ class Client:
 
     Raises:
         ConfigError: If required credentials are missing.
-        InvalidCredentials: If partner credentials are rejected.
+        InvalidCredentials: If TRADING_ID or API_KEY is rejected.
         AuthError: On any other authentication failure.
     """
 
     def __init__(
         self,
         *,
-        partner_id: str | None = None,
-        partner_secret: str | None = None,
-        trading_uuid: str | None = None,
+        trading_id: str | None = None,
+        api_key: str | None = None,
         simulation: bool | None = None,
         company_code: str | None = None,
-        identity_url: str | None = None,
         accept_language: str | None = None,
-        scopes: list[str] | None = None,
         timeout_seconds: float | None = None,
         token_store: TokenStore | None = None,
         lazy_auth: bool = False,
@@ -156,26 +150,27 @@ class Client:
     ) -> None:
         # Build settings from constructor args + env vars
         kwargs: dict[str, Any] = {}
-        if partner_id is not None:
-            kwargs["partner_id"] = partner_id
-        if partner_secret is not None:
-            kwargs["partner_secret"] = partner_secret
-        if trading_uuid is not None:
-            kwargs["trading_uuid"] = trading_uuid
+        if trading_id is not None:
+            kwargs["trading_id"] = trading_id
+        if api_key is not None:
+            kwargs["api_key"] = api_key
         if simulation is not None:
             kwargs["simulation"] = simulation
         if company_code is not None:
             kwargs["company_code"] = company_code
-        if identity_url is not None:
-            kwargs["identity_url"] = identity_url
         if accept_language is not None:
             kwargs["accept_language"] = accept_language
-        if scopes is not None:
-            kwargs["scopes"] = scopes
         if timeout_seconds is not None:
             kwargs["timeout_seconds"] = timeout_seconds
 
-        self._settings = Settings(**kwargs)
+        try:
+            self._settings = Settings(**kwargs)
+        except ValidationError as exc:
+            details = "; ".join(
+                f"{error['loc'][0]}: {error['msg']}"
+                for error in exc.errors(include_input=False, include_context=False)
+            )
+            raise ConfigError(f"Invalid configuration: {details}") from None
         self._base_url = _base_url_override if _base_url_override is not None else _BASE_URL
 
         configure_logging(
@@ -194,6 +189,7 @@ class Client:
             symbol_resolver=self._resolve,
             profile_id_getter=self._get_profile_id,
         )
+        self._http.auth = BearerTokenAuth(self._authorization, self._refresh_authorization)
 
         if not lazy_auth:
             self._auth.authenticate()
@@ -221,8 +217,8 @@ class Client:
     # ------------------------------------------------------------------
 
     def _token(self) -> str:
-        """Get a valid client token, refreshing if needed."""
-        return self._auth.get_client_token()
+        """Get a valid token and keep streaming credentials up to date."""
+        return self._get_token_and_notify_streaming()
 
     def _get_token_and_notify_streaming(self) -> str:
         """Get a valid token and push it to StreamingClient if it changed.
@@ -230,9 +226,26 @@ class Client:
         Used as the ``token_getter`` for :class:`~younit.streaming.StreamingClient`
         so that Lightstreamer always uses an up-to-date token.
         """
-        token = self._auth.get_client_token()
+        token = self._auth.get_token()
         self.streaming.update_token(token)
         return token
+
+    def _refresh_token(self) -> str:
+        """Re-authenticate after a 401 and notify the streaming connection."""
+        token = self._auth.handle_401()
+        self.streaming.update_token(token)
+        return token
+
+    def _authorization(self) -> str:
+        """Get the current REST authorization and notify streaming on refresh."""
+        self._get_token_and_notify_streaming()
+        return self._auth.get_authorization()
+
+    def _refresh_authorization(self) -> str:
+        """Re-authenticate after a 401 for REST and streaming."""
+        token = self._auth.handle_401()
+        self.streaming.update_token(token)
+        return self._auth.get_authorization()
 
     def _request(
         self,
@@ -266,12 +279,6 @@ class Client:
             headers["Content-Type"] = "application/json"
 
         response = self._http.request(method, url, headers=headers, params=params, json=json)
-
-        if response.status_code == 401:
-            # Refresh token and retry once
-            new_token = self._auth.handle_401()
-            headers["Authorization"] = f"Bearer {new_token}"
-            response = self._http.request(method, url, headers=headers, params=params, json=json)
 
         raise_for_status(response)
         return response
@@ -2267,4 +2274,3 @@ class Client:
             token=self._token(),
             order_id=order_id,
         )
-

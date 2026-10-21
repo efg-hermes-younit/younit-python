@@ -10,31 +10,22 @@ import httpx
 import pytest
 import respx
 
-from younit.config import Settings
+from younit.config import _TOKEN_URL, Settings
 
 # ---------------------------------------------------------------------------
 # Constants / canned response data
 # ---------------------------------------------------------------------------
 
-FAKE_SERVER_TOKEN = "fake-server-jwt-token"
 FAKE_CLIENT_TOKEN = "fake-client-jwt-token"
-FAKE_PARTNER_ID = "test-partner-id"
-FAKE_PARTNER_SECRET = "test-partner-secret"
-FAKE_TRADING_UUID = "test-trading-uuid"
+FAKE_API_KEY = "test-api-key"
+FAKE_TRADING_ID = "test-trading-id"
 FAKE_BASE_URL = "https://api.efg-one.test"
-
-SERVER_TOKEN_RESPONSE = {
-    "access_token": FAKE_SERVER_TOKEN,
-    "token_type": "Bearer",
-    "expires_in": 86400,
-    "scope": "trading.read trading.write",
-}
+TOKEN_URL = _TOKEN_URL
 
 CLIENT_TOKEN_RESPONSE = {
-    "iframe_url": f"{FAKE_BASE_URL}/?token={FAKE_CLIENT_TOKEN}",
-    "client_token": FAKE_CLIENT_TOKEN,
-    "token_type": "Bearer",
-    "expires_in": 86400,
+    "accessToken": FAKE_CLIENT_TOKEN,
+    "tokenType": "Bearer",
+    "expiresIn": 86400,
 }
 
 
@@ -47,10 +38,8 @@ CLIENT_TOKEN_RESPONSE = {
 def settings() -> Settings:
     """Minimal Settings instance for testing."""
     return Settings(
-        partner_id=FAKE_PARTNER_ID,
-        partner_secret=FAKE_PARTNER_SECRET,
-        trading_uuid=FAKE_TRADING_UUID,
-        identity_url=FAKE_BASE_URL,
+        trading_id=FAKE_TRADING_ID,
+        api_key=FAKE_API_KEY,
         simulation=True,
     )
 
@@ -64,10 +53,7 @@ def mock_http() -> httpx.Client:
 @pytest.fixture
 def auth_routes(respx_mock: respx.MockRouter) -> respx.MockRouter:
     """Pre-configure auth endpoints on the respx mock router."""
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/token").mock(
-        return_value=httpx.Response(200, json=SERVER_TOKEN_RESPONSE)
-    )
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/iframe-access").mock(
+    respx_mock.post(TOKEN_URL).mock(
         return_value=httpx.Response(200, json=CLIENT_TOKEN_RESPONSE)
     )
     return respx_mock

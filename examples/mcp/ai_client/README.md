@@ -29,7 +29,7 @@ uv sync --extra dev --extra ai-demo
 
 cp examples/mcp/ai_client/.env.example examples/mcp/ai_client/.env
 # fill in the API key(s) for the provider(s) you want to try, plus
-# EFG_PARTNER_ID / EFG_PARTNER_SECRET / EFG_TRADING_UUID — the spawned
+# TRADING_ID / API_KEY — the spawned
 # MCP server needs these to authenticate against younit.
 
 python examples/mcp/ai_client/openai_demo.py

@@ -1,14 +1,13 @@
 """Configuration for the EFG API SDK.
 
 All settings can be provided via constructor arguments or environment variables.
-Environment variables are prefixed with ``EFG_``.
+Credentials use ``TRADING_ID`` and ``API_KEY``. Other settings use ``EFG_``.
 
 Example::
 
     # From environment (e.g. in a .env file or shell):
-    # EFG_PARTNER_ID=your-partner-id
-    # EFG_PARTNER_SECRET=your-partner-secret
-    # EFG_TRADING_UUID=client-trading-uuid
+    # TRADING_ID=your-trading-id
+    # API_KEY=your-api-key
     # EFG_SIMULATION=true
 
     from younit.config import Settings
@@ -17,29 +16,29 @@ Example::
 
     # Or override explicitly:
     settings = Settings(
-        partner_id="...",
-        partner_secret="...",
-        trading_uuid="...",
+        trading_id="...",
+        api_key="...",
         simulation=True,
     )
 """
 
 from __future__ import annotations
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Confirmed production hosts. Hardcoded intentionally — no longer configurable
 # via env var or public constructor argument. For internal/staging use only,
 # Client accepts an undocumented `_base_url_override` constructor kwarg.
 _BASE_URL = "https://tradingapis.efghermesone.com"
+_TOKEN_URL = f"{_BASE_URL}/api/public-keys/token"
 _STREAMING_URL = "https://iengine138.hermesonline.com/"
 
 
 class Settings(BaseSettings):
     """EFG API client configuration.
 
-    All fields can be set via environment variables (prefixed ``EFG_``).
+    Credentials use unprefixed environment variables; other fields use ``EFG_``.
     Constructor arguments take precedence over environment variables.
     """
 
@@ -49,34 +48,23 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
+        hide_input_in_errors=True,
     )
 
     # --- Required credentials ---
 
-    partner_id: str = Field(
+    trading_id: str = Field(
         ...,
-        description="Partner identifier issued by the trading provider. Set EFG_PARTNER_ID.",
+        validation_alias="TRADING_ID",
+        repr=False,
+        description="Trading identifier issued by the trading provider. Set TRADING_ID.",
     )
-    partner_secret: str = Field(
+    api_key: SecretStr = Field(
         ...,
-        description="Partner secret issued by the trading provider. Set EFG_PARTNER_SECRET.",
-    )
-    trading_uuid: str = Field(
-        ...,
-        description=(
-            "Trading UUID for the end client. Each client has a unique UUID "
-            "assigned by the trading provider. Set EFG_TRADING_UUID."
-        ),
-    )
-
-    # --- Endpoints ---
-
-    identity_url: str | None = Field(
-        default=None,
-        description=(
-            "Base URL for the identity provider. "
-            "Defaults to the production trading API host when not set. Set EFG_IDENTITY_URL."
-        ),
+        validation_alias="API_KEY",
+        repr=False,
+        description="Public-key authentication secret. Set API_KEY.",
     )
 
     # --- Behaviour ---
@@ -108,13 +96,6 @@ class Settings(BaseSettings):
     api_version: str = Field(
         default="1.0",
         description="Sets x-api-version header. Set younit_VERSION.",
-    )
-    scopes: list[str] = Field(
-        default=["trading.read", "trading.write"],
-        description=(
-            "OAuth scopes to request. Space-separated string or JSON list. "
-            "Set EFG_SCOPES='trading.read trading.write'."
-        ),
     )
 
     # --- HTTP ---
@@ -165,12 +146,14 @@ class Settings(BaseSettings):
         ),
     )
 
-    @model_validator(mode="after")
-    def _apply_defaults(self) -> Settings:
-        """Default identity_url to the production trading API host when unset."""
-        if not self.identity_url:
-            self.identity_url = _BASE_URL
-        return self
+    @field_validator("trading_id", "api_key", mode="before")
+    @classmethod
+    def validate_credentials(cls, value: object) -> object:
+        """Reject empty credentials without including their values in errors."""
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw, str) or not raw.strip():
+            raise ValueError("Credential must be a non-empty string.")
+        return value
 
     @field_validator("accept_language")
     @classmethod
@@ -180,20 +163,7 @@ class Settings(BaseSettings):
             raise ValueError(f"accept_language must be 'en' or 'ar', got {v!r}")
         return v
 
-    @field_validator("scopes", mode="before")
-    @classmethod
-    def parse_scopes(cls, v: object) -> list[str]:
-        """Allow scopes to be provided as a space-separated string."""
-        if isinstance(v, str):
-            return v.split()
-        return list(v)  # type: ignore[arg-type]
-
     @property
     def server_select_header(self) -> str:
         """Return the X-Server-Select header value based on simulation mode."""
         return "simulation" if self.simulation else "real"
-
-    @property
-    def scope_string(self) -> str:
-        """Return scopes as a space-separated string for OAuth requests."""
-        return " ".join(self.scopes)

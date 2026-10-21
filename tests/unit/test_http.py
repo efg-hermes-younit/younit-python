@@ -91,7 +91,7 @@ class TestRaiseForStatus:
 
 class TestBuildDefaultHeaders:
     def test_headers_include_required_fields(self) -> None:
-        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u")
+        s = Settings(trading_id="test-id", api_key="test-key")
         headers = build_default_headers(s)
         assert "Accept-Language" in headers
         assert "X-Server-Select" in headers
@@ -100,17 +100,17 @@ class TestBuildDefaultHeaders:
         assert "User-Agent" in headers
 
     def test_simulation_sets_server_select(self) -> None:
-        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u", simulation=True)
+        s = Settings(trading_id="test-id", api_key="test-key", simulation=True)
         headers = build_default_headers(s)
         assert headers["X-Server-Select"] == "simulation"
 
     def test_real_sets_server_select(self) -> None:
-        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u", simulation=False)
+        s = Settings(trading_id="test-id", api_key="test-key", simulation=False)
         headers = build_default_headers(s)
         assert headers["X-Server-Select"] == "real"
 
     def test_user_agent_contains_package_name(self) -> None:
-        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u")
+        s = Settings(trading_id="test-id", api_key="test-key")
         headers = build_default_headers(s)
         assert "younit-python" in headers["User-Agent"]
 
@@ -125,7 +125,7 @@ class TestBuildSslContext:
     def test_build_httpx_client_constructs_successfully(self) -> None:
         """No pinned cert / custom SSL context is required — httpx's own
         default (system CA trust store) is used, i.e. standard verification."""
-        s = Settings(partner_id="p", partner_secret="s", trading_uuid="u")
+        s = Settings(trading_id="test-id", api_key="test-key")
         client = build_httpx_client(s)
         try:
             assert isinstance(client, httpx.Client)

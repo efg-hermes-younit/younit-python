@@ -15,9 +15,10 @@ import httpx
 import pytest
 
 import younit.client as client_module
+from younit.auth import _TokenRecord
 from younit.client import Client
 from younit.enums import OperationType, OrderExpireTerm
-from younit.exceptions import APIError, InvalidOrder, OrderRejected
+from younit.exceptions import APIError, AuthError, InvalidOrder, OrderRejected, Unauthorized
 from younit.models.market_data import StockInfo
 from younit.models.orders import Order
 from younit.models.streaming import MarketUpdate, Subscription, SymbolUpdate
@@ -203,25 +204,123 @@ RAW_PORTFOLIO_SECURITIES_RESPONSE = {
 
 
 def _make_client(respx_mock, raw_stocks=RAW_STOCKS) -> Client:
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/token").mock(
-        return_value=httpx.Response(200, json=conf.SERVER_TOKEN_RESPONSE)
-    )
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/iframe-access").mock(
+    respx_mock.post(conf.TOKEN_URL).mock(
         return_value=httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE)
     )
     respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/market/1", name="market_stocks").mock(
         return_value=httpx.Response(200, json=raw_stocks)
     )
     return Client(
-        partner_id=conf.FAKE_PARTNER_ID,
-        partner_secret=conf.FAKE_PARTNER_SECRET,
-        trading_uuid=conf.FAKE_TRADING_UUID,
-        identity_url=FAKE_BASE_URL,
+        trading_id=conf.FAKE_TRADING_ID,
+        api_key=conf.FAKE_API_KEY,
         simulation=True,
         lazy_auth=True,
         lazy_symbols=True,
         _base_url_override=FAKE_BASE_URL,
     )
+
+
+class TestAuthentication:
+    def test_authenticates_eagerly_and_keeps_api_host_override_separate(self, respx_mock):
+        token_route = respx_mock.post(conf.TOKEN_URL).respond(200, json=conf.CLIENT_TOKEN_RESPONSE)
+        with Client(
+            trading_id=conf.FAKE_TRADING_ID,
+            api_key=conf.FAKE_API_KEY,
+            lazy_symbols=True,
+            _base_url_override=FAKE_BASE_URL,
+        ) as client:
+            assert client._base_url == FAKE_BASE_URL
+        assert token_route.call_count == 1
+
+    def test_rest_uses_new_token(self, respx_mock):
+        client = _make_client(respx_mock)
+        route = respx_mock.get(f"{FAKE_BASE_URL}/api/account-utils/GetAccountInfo").respond(
+            200, json={"data": {}}
+        )
+        try:
+            client.account_info()
+        finally:
+            client.close()
+        assert route.calls.last.request.headers["Authorization"] == (
+            f"Bearer {conf.FAKE_CLIENT_TOKEN}"
+        )
+
+    @pytest.mark.parametrize("internal_request", [False, True])
+    def test_401_reauthenticates_once_and_updates_streaming(self, respx_mock, internal_request):
+        client = _make_client(respx_mock)
+        token_route = respx_mock.post(conf.TOKEN_URL).mock(
+            side_effect=[
+                httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE),
+                httpx.Response(
+                    200, json={**conf.CLIENT_TOKEN_RESPONSE, "accessToken": "new-token"}
+                ),
+            ]
+        )
+        route = respx_mock.get(f"{FAKE_BASE_URL}/api/account-utils/GetAccountInfo").mock(
+            side_effect=[httpx.Response(401), httpx.Response(200, json={"data": {}})]
+        )
+        client.streaming.update_token = MagicMock()
+        try:
+            if internal_request:
+                client._request("GET", "/api/account-utils/GetAccountInfo")
+            else:
+                client.account_info()
+        finally:
+            client.close()
+        assert token_route.call_count == 2
+        assert route.call_count == 2
+        assert route.calls[0].request.headers["Authorization"] == (
+            f"Bearer {conf.FAKE_CLIENT_TOKEN}"
+        )
+        assert route.calls[1].request.headers["Authorization"] == "Bearer new-token"
+        client.streaming.update_token.assert_called_with("new-token")
+
+    def test_second_401_is_not_retried(self, respx_mock):
+        client = _make_client(respx_mock)
+        token_route = respx_mock.post(conf.TOKEN_URL).respond(200, json=conf.CLIENT_TOKEN_RESPONSE)
+        route = respx_mock.get(f"{FAKE_BASE_URL}/api/account-utils/GetAccountInfo").respond(401)
+        try:
+            with pytest.raises(Unauthorized):
+                client.account_info()
+        finally:
+            client.close()
+        assert route.call_count == 2
+        assert token_route.call_count == 2
+
+    def test_failed_reauthentication_does_not_retry_api_request(self, respx_mock):
+        client = _make_client(respx_mock)
+        token_route = respx_mock.post(conf.TOKEN_URL).mock(
+            side_effect=[
+                httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE),
+                httpx.Response(401, json={"message": "Rejected"}),
+            ]
+        )
+        route = respx_mock.get(f"{FAKE_BASE_URL}/api/account-utils/GetAccountInfo").respond(401)
+        try:
+            with pytest.raises(AuthError, match="HTTP 401: Rejected"):
+                client.account_info()
+        finally:
+            client.close()
+        assert route.call_count == 1
+        assert token_route.call_count == 2
+
+    @pytest.mark.parametrize("seconds_left", [-1, 299])
+    def test_rest_refreshes_expiring_token_and_notifies_streaming(self, respx_mock, seconds_left):
+        client = _make_client(respx_mock)
+        client._auth._token = _TokenRecord(
+            "old-token", expires_in=seconds_left, token_type="Bearer"
+        )
+        client.streaming.update_token = MagicMock()
+        token_route = respx_mock.post(conf.TOKEN_URL).respond(200, json=conf.CLIENT_TOKEN_RESPONSE)
+        respx_mock.get(f"{FAKE_BASE_URL}/api/account-utils/GetAccountInfo").respond(
+            200, json={"data": {}}
+        )
+        try:
+            client.account_info()
+        finally:
+            client.close()
+        assert token_route.call_count == 1
+        client.streaming.update_token.assert_called_with(conf.FAKE_CLIENT_TOKEN)
 
 
 class TestPositions:
@@ -1852,6 +1951,3 @@ class TestGetTopMovers:
         assert {m.symbol for m in movers} == {"SYM0", "SYM1", "SYM3", "SYM4", "SYM5"}
         # Every stock, including the laggard, still gets unsubscribed.
         assert len(client.streaming.unsubscribed_subs) == 6
-
-
-

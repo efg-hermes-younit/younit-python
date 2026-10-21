@@ -784,9 +784,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Environment variables (required):
-  EFG_PARTNER_ID         Partner identifier
-  EFG_PARTNER_SECRET     Partner secret
-  EFG_TRADING_UUID       Client trading UUID
+  TRADING_ID            Trading identifier
+  API_KEY               Public-key authentication secret
 
 Safety settings (optional):
   EFG_MCP_READONLY             true/false (default: false)

@@ -10,6 +10,20 @@ pip install younit
 younit-mcp --help
 ```
 
+## Authentication
+
+Set `TRADING_ID` and `API_KEY` in the server environment or a `.env` file in
+its working directory. The MCP server uses `Client()`, which authenticates via
+`POST https://tradingapis.efghermesone.com/api/public-keys/token` with JSON
+`{"tradingId": "<TRADING_ID>", "secret": "<API_KEY>"}`. REST and streaming use
+the same returned token, with automatic proactive refresh and one retry on 401.
+Never include real credentials in MCP configuration committed to source control.
+
+The production response contains `accessToken`, `expiresIn`, and `tokenType`
+inside `data`; the parser also accepts those fields at the top level.
+
+For the canonical authentication guide, see [docs/mcp.md](../../docs/mcp.md).
+
 ## Transports
 
 ### stdio (Claude Desktop)

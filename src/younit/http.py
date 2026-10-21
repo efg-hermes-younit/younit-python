@@ -45,6 +45,28 @@ _MAX_RETRIES = 3
 _RETRY_BACKOFF_BASE = 0.5  # seconds; doubles each attempt
 
 
+class BearerTokenAuth(httpx.Auth):
+    """Apply token refresh and a single 401 retry to every SDK REST request."""
+
+    requires_response_body = True
+
+    def __init__(
+        self,
+        authorization_getter: Callable[[], str],
+        authorization_refresher: Callable[[], str],
+    ) -> None:
+        self._authorization_getter = authorization_getter
+        self._authorization_refresher = authorization_refresher
+
+    def auth_flow(self, request: httpx.Request) -> Generator[httpx.Request, httpx.Response, None]:
+        """Retry only an explicit authentication rejection, never a transport failure."""
+        request.headers["Authorization"] = self._authorization_getter()
+        response = yield request
+        if response.status_code == 401:
+            request.headers["Authorization"] = self._authorization_refresher()
+            yield request
+
+
 def _build_user_agent() -> str:
     return f"younit-python/{__version__} (+https://github.com/efg-hermes-younit/younit-python)"
 

@@ -12,14 +12,14 @@ This example demonstrates:
 - Handling order errors
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
 from younit.exceptions import APIError, InsufficientFunds, OrderRejected
 
 SYMBOL = "ABUK"
-QUANTITY = 2  # shares
+QUANTITY = 1  # shares
 
 with Client() as client:
     quote = client.quote(SYMBOL)

@@ -7,7 +7,7 @@ This example demonstrates:
 - Printing a simple price table and basic stats
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from datetime import date, timedelta
@@ -22,7 +22,7 @@ with Client() as client:
     # Fetch candles for an explicit date range (last 30 days from today)
     # ------------------------------------------------------------------
     date_to = date.today()
-    date_from = date_to - timedelta(days=30)
+    date_from = date_to - timedelta(days=20)
 
     # date_from = date(2018, 7, 20)
     # date_to = date(2018, 9, 14)

@@ -7,7 +7,7 @@ This example demonstrates:
 - Buying units via buy_fund()
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -21,7 +21,7 @@ with Client() as client:
     Fund.print_table(funds)  # show first 5
     
     fund = funds[3]
-    quantity = 1
+    quantity = 2
     price = fund.nav
 
     print(f"Buying fund [{fund.fund_id}] {fund.name}")

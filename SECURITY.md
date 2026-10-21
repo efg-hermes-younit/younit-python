@@ -27,7 +27,9 @@ We aim to acknowledge reports within 2 business days and provide an initial asse
 This SDK is designed with credential safety as a first-class concern:
 
 - Tokens and credentials are **never** logged, even at DEBUG level
-- All redacted fields: `access_token`, `client_token`, `server_token`, `token`, `partner_secret`, `password`, `Authorization`
+- Redacted fields include `access_token`, `client_token`, `token`, `api_key`,
+  `API_KEY`, `secret`, `trading_id`, `tradingId`, `TRADING_ID`, `password`,
+  and `Authorization`
 - No credentials are persisted to disk by default
 - The `InMemoryTokenStore` keeps tokens in process memory only
 - Custom `TokenStore` implementations must uphold the same guarantee

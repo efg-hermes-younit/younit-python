@@ -8,7 +8,7 @@ This example demonstrates:
 - Handling the case where you hold nothing to sell
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 - You must already hold a position in SYMBOL (see example 08/09 to open one)
 """
 

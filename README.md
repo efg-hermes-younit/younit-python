@@ -43,12 +43,29 @@ cp .env.example .env
 ```
 
 ```dotenv
-EFG_PARTNER_ID=your-partner-id
-EFG_PARTNER_SECRET=your-partner-secret
-EFG_TRADING_UUID=your-trading-uuid
+TRADING_ID=your-trading-id
+API_KEY=your-api-key
 ```
 
-Full configuration reference: [docs/reference.md](docs/reference.md).
+Alternatively, pass `Client(trading_id="...", api_key="...")`; constructor
+arguments override environment variables and `.env`.
+
+Authentication sends JSON `{"tradingId": "<TRADING_ID>", "secret": "<API_KEY>"}`
+to `POST https://tradingapis.efghermesone.com/api/public-keys/token`.
+REST endpoints remain on that same host. The returned token is used as a
+Bearer token for REST and the Lightstreamer password; `TRADING_ID` is the
+streaming username. Tokens refresh five minutes before expiry, and an API
+401 triggers one re-authentication and retry.
+
+The token response uses `accessToken`, `expiresIn`, and `tokenType`, nested
+under `data` in the production response. The parser also accepts these fields
+at the top level. Unexpected responses raise an authentication error rather
+than falling back to a different authentication method.
+
+Other settings retain their `EFG_` prefix (for example, `EFG_SIMULATION=true`).
+Missing credentials are reported by name; credential values are never included
+in authentication errors. See [MCP authentication](docs/mcp.md#authentication)
+for server configuration.
 
 ## Usage
 

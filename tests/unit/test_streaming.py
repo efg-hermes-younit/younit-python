@@ -120,9 +120,8 @@ def _fake_ls_module(fake_client_cls=FakeLSClient, fake_sub_cls=FakeLSSubscriptio
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
-        partner_id="p",
-        partner_secret="s",
-        trading_uuid="uuid-123",
+        trading_id="trading-123",
+        api_key="test-key",
         streaming_adapter="PROXY_MarketBeat",
         simulation=True,
     )
@@ -173,6 +172,16 @@ class TestConnection:
             streaming_client.connect()
             streaming_client.connect()  # second call should be no-op
         assert streaming_client.is_connected() is True
+
+    def test_login_uses_trading_id_and_token(self, streaming_client, settings, token_getter):
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            streaming_client.connect()
+        details = streaming_client._ls_client.connectionDetails
+        details.setUser.assert_called_once_with(settings.trading_id)
+        details.setPassword.assert_called_once_with(token_getter.return_value)
 
     def test_disconnect_resets_state(self, streaming_client):
         with patch.dict(
@@ -230,7 +239,7 @@ class TestConnection:
     ):
         """Sim streaming is discontinued — simulation must not change the streaming host."""
         real_settings = Settings(
-            partner_id="p", partner_secret="s", trading_uuid="uuid-123", simulation=False
+            trading_id="trading-123", api_key="test-key", simulation=False
         )
         sc = StreamingClient(
             settings=real_settings, token_getter=token_getter, symbol_resolver=symbol_resolver
@@ -325,7 +334,7 @@ class TestSubscribeMethods:
         assert sub.stream_type == "SecurityTrades"
         assert sub.item == "ts9999"
 
-    def test_subscribe_orders_uses_trading_uuid(self, streaming_client, settings):
+    def test_subscribe_orders_uses_trading_id(self, streaming_client, settings):
         self._connect(streaming_client)
         with patch.dict(
             "sys.modules",
@@ -334,7 +343,7 @@ class TestSubscribeMethods:
             sub = streaming_client.subscribe_orders(on_update=lambda _: None)
 
         assert sub.stream_type == "ActiveOrders"
-        assert sub.item == f"po{settings.trading_uuid}"
+        assert sub.item == f"po{settings.trading_id}"
 
     def test_subscribe_orders_custom_account_id(self, streaming_client):
         self._connect(streaming_client)

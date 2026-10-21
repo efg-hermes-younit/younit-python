@@ -12,7 +12,7 @@ _mcp_bridge.py) — this demo can never place, amend, or cancel a real order.
 Setup:
   uv sync --extra dev --extra ai-demo
   cp examples/mcp/ai_client/.env.example examples/mcp/ai_client/.env
-  # fill in AZURE_OPENAI_* and the EFG_* credentials
+  # fill in AZURE_OPENAI_* plus TRADING_ID and API_KEY
   python examples/mcp/ai_client/azure_openai_demo.py
 """
 
