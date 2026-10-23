@@ -66,26 +66,57 @@ class OperationType(IntEnum):
 class OrderExpireTerm(IntEnum):
     """Order expiry terms (_OrderExpireTerms in OpenAPI spec).
 
-    Only DAY (7) and GOOD_TILL_DATE (8) are documented in the guides.
+    DAY (7) and GOOD_TILL_DATE (8) are documented in the guides. OPEN (1),
+    GOOD_TILL_CROSSING (6), GOOD_TILL_SESSION (9), and AT_THE_CLOSE (10)
+    were confirmed live (2026-09-29) via the API's own rejection messages,
+    each of which names the term explicitly (e.g. "Market not allow Expiry
+    Term : GoodTillCrossing") when sent for an order type that doesn't
+    accept it.
 
-    DEFERRED: all other values are UNCONFIRMED. Blocked on backend team
+    DEFERRED: 0, 3, 4, 5, 11 are UNCONFIRMED. Blocked on backend team
     confirmation.
     """
 
     UNKNOWN_0 = 0  # unconfirmed
-    UNKNOWN_1 = 1  # unconfirmed
-    # Required for market orders (is_market_price=True), confirmed by backend
-    # team — distinct from DAY(7) used for limit orders.
+    OPEN = 1  # Confirmed live 2026-09-29: rejection named it "Open"
+    # Confirmed required for BOTH market orders (is_market_price=True) AND
+    # same-day settlement limit sells (operationType=201, SELL_SAME_DAY) —
+    # live-verified 2026-09-29 that DAY(7) and GOOD_TILL_DATE(8) are both
+    # explicitly rejected for same-day sells ("...must be 'Valid Till
+    # Date'" and "Market not allow Expiry Term: GoodTillTime" respectively).
+    # Not market-order-specific as previously assumed. Exact official name
+    # still unconfirmed — backend hasn't named it directly.
     UNKNOWN_2 = 2
     UNKNOWN_3 = 3  # unconfirmed
     UNKNOWN_4 = 4  # unconfirmed
     UNKNOWN_5 = 5  # unconfirmed
-    UNKNOWN_6 = 6  # unconfirmed
+    GOOD_TILL_CROSSING = 6  # Confirmed live 2026-09-29: rejection named it "GoodTillCrossing"
     DAY = 7  # Confirmed: Day order (expires at market close)
     GOOD_TILL_DATE = 8  # Confirmed: Good Till Date (expires on expireDate)
-    UNKNOWN_9 = 9  # unconfirmed
-    UNKNOWN_10 = 10  # unconfirmed
+    GOOD_TILL_SESSION = 9  # Confirmed live 2026-09-29: rejection named it "GoodTillSession"
+    AT_THE_CLOSE = 10  # Confirmed live 2026-09-29: rejection named it "AttheClose"
     UNKNOWN_11 = 11  # unconfirmed
+
+
+# _SecurityClassID name table, sourced from internal database access (NOT
+# officially published/confirmed by the backend team) — trimmed to only
+# the values actually observed in this account's live security universe
+# (see diagnostics/capture_security_classes.py /
+# src/younit/data/security_classes_snapshot.json). A plain dict (not an
+# IntEnum) is used here since the labels aren't valid Python identifiers
+# as-is (mixed case with underscores, e.g. "LocalSecurity_IN") and this is
+# only ever used for read-only id->name lookup, never sent back to the
+# API. An id not in this table (e.g. one of the ~29 known-but-unobserved
+# classes) resolves to security_class_name=None, same as any other
+# unmapped/unknown id — see _security_class_snapshot.get_security_class.
+SECURITY_CLASS_NAMES: dict[int, str] = {
+    1: "LocalSecurity_IN",
+    2: "LocalSecurity_OUT",
+    5: "OTC",
+    7: "PrivateBond_IN",
+    21: "FuturesDerivativeContracts",
+    35: "Tbills",
+}
 
 
 class OrderVia(IntEnum):

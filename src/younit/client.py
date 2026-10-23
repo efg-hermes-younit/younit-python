@@ -1,16 +1,15 @@
 """Younit Trading API — Python SDK Client.
 
 The :class:`Client` is the single entry point for all SDK operations.
-Construct one Client per end user (per ``tradingUuid``).
+Construct one Client per end user (per ``tradingId``).
 
 Example::
 
     from younit import Client
 
     client = Client(
-        partner_id="your-partner-id",
-        partner_secret="your-partner-secret",
-        trading_uuid="client-trading-uuid",
+        trading_id="your-trading-id",
+        api_key="your-api-key",
         simulation=True,   # Always start in simulation mode
     )
 
@@ -19,7 +18,7 @@ Example::
 
 Or use environment variables (recommended for production)::
 
-    # Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+    # Set TRADING_ID and API_KEY in your environment
     client = Client()
 """
 
@@ -32,7 +31,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
+from pydantic import ValidationError
 
+from younit import _security_class_snapshot
 from younit.auth import IdentityProvider, TokenStore
 from younit.config import _BASE_URL, Settings
 from younit.endpoints import account as _account
@@ -41,6 +42,7 @@ from younit.endpoints import market_data as _market_data
 from younit.endpoints import orders as _orders
 from younit.endpoints import trading as _trading
 from younit.enums import (
+    SECURITY_CLASS_NAMES,
     ChartPeriod,
     ExecutionTerm,
     OperationType,
@@ -48,8 +50,8 @@ from younit.enums import (
     OrderVia,
     SubOrderVia,
 )
-from younit.exceptions import OrderRejected
-from younit.http import build_default_headers, build_httpx_client, raise_for_status
+from younit.exceptions import ConfigError, OrderRejected
+from younit.http import BearerTokenAuth, build_default_headers, build_httpx_client, raise_for_status
 from younit.logging import configure_logging, get_logger
 from younit.models.account import AccountInfo
 from younit.models.funds import Fund, FundOrderHistoryEntry, FundPerformance
@@ -76,13 +78,19 @@ _SETTLEMENT_TO_OPERATION_TYPE = {
     "t1": OperationType.SELL_T1,
 }
 
+# get_top_movers()'s real-equity filter over list_stocks()'s security_class_name
+# — excludes Tbills, bonds, futures, etc., which have no meaningful
+# change_pct/gainer-loser concept. Confirmed live: OTC == the OTC list-type
+# category exactly (42/42, zero discrepancy).
+_TOP_MOVERS_ELIGIBLE_CLASSES = frozenset({"LocalSecurity_IN", "LocalSecurity_OUT", "OTC"})
+
 # MarketStatistics stream's m_MarketStatus -> friendly status string.
 # Empirically derived from live observation (2026-09-05): "2" seen during
 # EGX trading hours (11:30 AM, market open), "3" seen after close (3:42 PM).
 # NOT yet officially confirmed by the backend team — if they confirm a
 # different or fuller mapping (e.g. additional states like pre-open
 # auction), update this accordingly.
-_MARKET_STATUS_MAP = {"2": "open", "3": "closed"}
+_MARKET_STATUS_MAP = {"2": "open", "3": "closed", "20": "trade at last"}
 
 
 def _parse_next_working_day(message: str) -> datetime | None:
@@ -109,14 +117,11 @@ class Client:
     All methods are synchronous. There is no async variant in v0.1.
 
     Args:
-        partner_id: Partner identifier. Overrides ``EFG_PARTNER_ID``.
-        partner_secret: Partner secret. Overrides ``EFG_PARTNER_SECRET``.
-        trading_uuid: Client trading UUID. Overrides ``EFG_TRADING_UUID``.
+        trading_id: Trading identifier. Overrides ``TRADING_ID``.
+        api_key: Authentication secret. Overrides ``API_KEY``.
         simulation: If True, uses simulation mode. Overrides ``EFG_SIMULATION``.
         company_code: Company code header. Overrides ``EFG_COMPANY_CODE``.
-        identity_url: Identity provider URL. Overrides ``EFG_IDENTITY_URL``.
         accept_language: Language header. Overrides ``EFG_ACCEPT_LANGUAGE``.
-        scopes: OAuth scopes list. Overrides ``EFG_SCOPES``.
         timeout_seconds: Request timeout. Overrides ``EFG_TIMEOUT_SECONDS``.
         token_store: Custom token store implementation. Defaults to in-memory.
         lazy_auth: If True, defers authentication until first API call.
@@ -126,21 +131,18 @@ class Client:
 
     Raises:
         ConfigError: If required credentials are missing.
-        InvalidCredentials: If partner credentials are rejected.
+        InvalidCredentials: If TRADING_ID or API_KEY is rejected.
         AuthError: On any other authentication failure.
     """
 
     def __init__(
         self,
         *,
-        partner_id: str | None = None,
-        partner_secret: str | None = None,
-        trading_uuid: str | None = None,
+        trading_id: str | None = None,
+        api_key: str | None = None,
         simulation: bool | None = None,
         company_code: str | None = None,
-        identity_url: str | None = None,
         accept_language: str | None = None,
-        scopes: list[str] | None = None,
         timeout_seconds: float | None = None,
         token_store: TokenStore | None = None,
         lazy_auth: bool = False,
@@ -149,26 +151,27 @@ class Client:
     ) -> None:
         # Build settings from constructor args + env vars
         kwargs: dict[str, Any] = {}
-        if partner_id is not None:
-            kwargs["partner_id"] = partner_id
-        if partner_secret is not None:
-            kwargs["partner_secret"] = partner_secret
-        if trading_uuid is not None:
-            kwargs["trading_uuid"] = trading_uuid
+        if trading_id is not None:
+            kwargs["trading_id"] = trading_id
+        if api_key is not None:
+            kwargs["api_key"] = api_key
         if simulation is not None:
             kwargs["simulation"] = simulation
         if company_code is not None:
             kwargs["company_code"] = company_code
-        if identity_url is not None:
-            kwargs["identity_url"] = identity_url
         if accept_language is not None:
             kwargs["accept_language"] = accept_language
-        if scopes is not None:
-            kwargs["scopes"] = scopes
         if timeout_seconds is not None:
             kwargs["timeout_seconds"] = timeout_seconds
 
-        self._settings = Settings(**kwargs)
+        try:
+            self._settings = Settings(**kwargs)
+        except ValidationError as exc:
+            details = "; ".join(
+                f"{error['loc'][0]}: {error['msg']}"
+                for error in exc.errors(include_input=False, include_context=False)
+            )
+            raise ConfigError(f"Invalid configuration: {details}") from None
         self._base_url = _base_url_override if _base_url_override is not None else _BASE_URL
 
         configure_logging(
@@ -187,6 +190,7 @@ class Client:
             symbol_resolver=self._resolve,
             profile_id_getter=self._get_profile_id,
         )
+        self._http.auth = BearerTokenAuth(self._authorization, self._refresh_authorization)
 
         if not lazy_auth:
             self._auth.authenticate()
@@ -214,8 +218,8 @@ class Client:
     # ------------------------------------------------------------------
 
     def _token(self) -> str:
-        """Get a valid client token, refreshing if needed."""
-        return self._auth.get_client_token()
+        """Get a valid token and keep streaming credentials up to date."""
+        return self._get_token_and_notify_streaming()
 
     def _get_token_and_notify_streaming(self) -> str:
         """Get a valid token and push it to StreamingClient if it changed.
@@ -223,9 +227,26 @@ class Client:
         Used as the ``token_getter`` for :class:`~younit.streaming.StreamingClient`
         so that Lightstreamer always uses an up-to-date token.
         """
-        token = self._auth.get_client_token()
+        token = self._auth.get_token()
         self.streaming.update_token(token)
         return token
+
+    def _refresh_token(self) -> str:
+        """Re-authenticate after a 401 and notify the streaming connection."""
+        token = self._auth.handle_401()
+        self.streaming.update_token(token)
+        return token
+
+    def _authorization(self) -> str:
+        """Get the current REST authorization and notify streaming on refresh."""
+        self._get_token_and_notify_streaming()
+        return self._auth.get_authorization()
+
+    def _refresh_authorization(self) -> str:
+        """Re-authenticate after a 401 for REST and streaming."""
+        token = self._auth.handle_401()
+        self.streaming.update_token(token)
+        return self._auth.get_authorization()
 
     def _request(
         self,
@@ -259,12 +280,6 @@ class Client:
             headers["Content-Type"] = "application/json"
 
         response = self._http.request(method, url, headers=headers, params=params, json=json)
-
-        if response.status_code == 401:
-            # Refresh token and retry once
-            new_token = self._auth.handle_401()
-            headers["Authorization"] = f"Bearer {new_token}"
-            response = self._http.request(method, url, headers=headers, params=params, json=json)
 
         raise_for_status(response)
         return response
@@ -359,6 +374,20 @@ class Client:
             (e.g. an empty symbol cache).
         """
         return self._get_profile_id()
+
+    @property
+    def security_class_snapshot_captured_at(self) -> str | None:
+        """ISO-8601 UTC capture date of the ``_SecurityClassID`` enrichment
+        snapshot used by :meth:`list_stocks` (``None`` if the snapshot file
+        is missing).
+
+        TEMPORARY: this whole enrichment mechanism (snapshot file +
+        this property) is scaffolding meant to be deleted once
+        ``list_stocks()``'s backend response includes ``_SecurityClassID``
+        natively — see ``younit._security_class_snapshot``'s module
+        docstring for the removal checklist.
+        """
+        return _security_class_snapshot.snapshot_captured_at()
 
     def account_info(self) -> AccountInfo:
         """Fetch the client's account information.
@@ -684,7 +713,12 @@ class Client:
         Returns every security registered on this market — common stocks,
         bonds, sukuk, and delisted rights issues alike (506 items for market
         1, confirmed via live testing) — not just actively-tradeable stocks.
-        For tradeable common stocks only, see :meth:`list_tradeable_stocks`.
+        Each result is enriched with ``security_class_name`` (instrument
+        type, e.g. ``"LocalSecurity_IN"``/``"OTC"``/``"Tbills"`` — see
+        :data:`~younit.enums.SECURITY_CLASS_NAMES`) and
+        ``is_same_day_eligible`` (live Intraday-list membership — see that
+        field's docstring on :class:`~younit.models.market_data.StockInfo`
+        for why it can't be inferred from ``security_class_name`` alone).
 
         Args:
             market_id: Market identifier. Defaults to configured default (1 = EGX).
@@ -714,68 +748,116 @@ class Client:
                 reuter = item.get("reuterCode") or ""
                 item["symbol"] = reuter.split(".")[0] or None
             result.append(StockInfo.model_validate(item))
+        self._enrich_security_classes(result)
+        same_day_ids = self._fetch_same_day_eligible_stock_ids(mid)
+        for stock in result:
+            stock.is_same_day_eligible = stock.stock_id in same_day_ids
         return result
 
-    def list_tradeable_stocks(self, market_id: int | None = None) -> list[StockInfo]:
-        """List actively-tradeable common stocks (Intraday + OTC eligible).
+    def _fetch_same_day_eligible_stock_ids(self, market_id: int) -> set[int]:
+        """Live Intraday-list membership (same-day/T0 eligible stock_ids).
 
-        Unlike :meth:`list_stocks`, which returns everything registered on
-        the market (stocks, bonds, sukuk, delisted rights issues — 506
-        items for market 1), this returns only stocks eligible for
-        intraday or OTC trading (confirmed via live testing: 215 + 41 =
-        256 stocks, zero overlap between the two categories, and confirmed
-        free of the non-stock instruments present in the full listing).
-
-        Category ids are looked up dynamically via
-        ``stock-lists-types/{marketId}`` (matched by name, case-insensitive
-        "intraday"/"otc" substring) rather than hardcoded, since "Type
-        always equals Id" is only confirmed for the categories that exist
-        today, not guaranteed permanently. If a category can't be found,
-        it's skipped (with a logged warning) rather than raising.
-
-        Args:
-            market_id: Market identifier. Defaults to configured default (1 = EGX).
-
-        Returns:
-            List of :class:`~younit.models.market_data.StockInfo`,
-            deduplicated by stock id (Intraday union OTC).
+        Category id is looked up dynamically via ``stock-lists-types/
+        {marketId}`` (matched by name, case-insensitive "intraday"
+        substring) rather than hardcoded, since "Type always equals Id" is
+        only confirmed for the categories that exist today, not guaranteed
+        permanently. Returns an empty set (logged) if the category can't
+        be found, rather than raising.
         """
-        mid = market_id if market_id is not None else self._settings.default_market_id
         categories = _market_data.get_stock_list_types(
             self._http,
             self._base_url,
             self._default_headers,
             token=self._token(),
-            market_id=mid,
+            market_id=market_id,
         )
+        category = next(
+            (row for row in categories if "intraday" in (row.get("name") or "").lower()), None
+        )
+        if category is None:
+            _log.warning("list_stocks_same_day_category_not_found", market_id=market_id)
+            return set()
 
-        def _find_category(name_substring: str) -> dict[str, Any] | None:
-            for row in categories:
-                name = row.get("name") or ""
-                if name_substring in name.lower():
-                    return row
-            return None
+        stocks = _market_data.get_stocks_by_list_type(
+            self._http,
+            self._base_url,
+            self._default_headers,
+            token=self._token(),
+            list_type=category["type"],
+            list_id=category["id"],
+            market_id=market_id,
+        )
+        return {stock.stock_id for stock in stocks if stock.stock_id is not None}
 
-        wanted = {"intraday": _find_category("intraday"), "otc": _find_category("otc")}
+    @staticmethod
+    def _enrich_security_classes(stocks: list[StockInfo]) -> None:
+        """TEMPORARY: fill in security_class_id/security_class_name from the
+        point-in-time snapshot (see ``younit._security_class_snapshot``'s
+        removal checklist). Mutates each StockInfo in place."""
+        for stock in stocks:
+            class_id, class_name = _security_class_snapshot.get_security_class(stock.stock_id)
+            stock.security_class_id = class_id
+            stock.security_class_name = class_name
 
-        result: dict[int, StockInfo] = {}
-        for label, category in wanted.items():
-            if category is None:
-                _log.warning("list_tradeable_stocks_category_not_found", label=label, market_id=mid)
-                continue
-            stocks = _market_data.get_stocks_by_list_type(
-                self._http,
-                self._base_url,
-                self._default_headers,
-                token=self._token(),
-                list_type=category["type"],
-                list_id=category["id"],
-                market_id=mid,
+    def list_by_class(self, *class_names: str) -> list[StockInfo]:
+        """Filter :meth:`list_stocks` by one or more ``security_class_name``
+        values (e.g. ``"OTC"``, ``"Tbills"``, ``"LocalSecurity_IN"``). See
+        :data:`~younit.enums.SECURITY_CLASS_NAMES` for all known values.
+
+        Args:
+            *class_names: One or more ``security_class_name`` values to
+                include (OR logic — a stock matching ANY of them is
+                included).
+
+        Returns:
+            ``list[StockInfo]`` whose ``security_class_name`` is in
+            ``class_names``. Stocks with ``security_class_name=None`` (not
+            in the snapshot) are never included.
+
+        Raises:
+            ValueError: If any ``class_names`` value isn't a recognized
+                name (checked against
+                :data:`~younit.enums.SECURITY_CLASS_NAMES`'s values,
+                case-sensitive) — fails fast on a typo rather than silently
+                returning an empty list.
+        """
+        known = set(SECURITY_CLASS_NAMES.values())
+        unknown = [name for name in class_names if name not in known]
+        if unknown:
+            raise ValueError(
+                f"Unrecognized security_class_name value(s): {unknown}. "
+                "See younit.enums.SECURITY_CLASS_NAMES for valid values."
             )
-            for stock in stocks:
-                if stock.stock_id is not None:
-                    result[stock.stock_id] = stock
-        return list(result.values())
+        wanted = set(class_names)
+        return [s for s in self.list_stocks() if s.security_class_name in wanted]
+
+    def list_same_day_eligible(self) -> list[StockInfo]:
+        """Stocks eligible for same-day (T0) trading.
+
+        Thin convenience wrapper equivalent to
+        ``[s for s in list_stocks() if s.is_same_day_eligible]``.
+        """
+        return [s for s in self.list_stocks() if s.is_same_day_eligible]
+
+    def list_otc(self) -> list[StockInfo]:
+        """OTC-classified stocks — equivalent to ``list_by_class("OTC")``.
+
+        Provided as a named convenience since OTC is the most
+        commonly-filtered class.
+        """
+        return self.list_by_class("OTC")
+
+    @staticmethod
+    def security_class_names() -> list[str]:
+        """All recognized ``security_class_name`` values accepted by
+        :meth:`list_by_class` (e.g. ``"OTC"``, ``"Tbills"``,
+        ``"LocalSecurity_IN"``), sorted alphabetically.
+
+        Convenience wrapper around :data:`~younit.enums.SECURITY_CLASS_NAMES`
+        — no API call, no ``Client`` instance needed (safe to call as
+        ``Client.security_class_names()``).
+        """
+        return sorted(set(SECURITY_CLASS_NAMES.values()))
 
     def historical_prices(
         self,
@@ -893,16 +975,20 @@ class Client:
     ) -> list[TopMover]:
         """Get current top gainers/losers, computed via live snapshot bursts.
 
-        Subscribes to SymbolStatistics for the FULL tradeable-stock universe
-        (via :meth:`list_tradeable_stocks` — never truncated), in consecutive
-        batches of up to ``limit`` concurrent subscriptions at a time:
-        captures each symbol's first snapshot event, unsubscribes the batch,
-        then moves on to the next batch — a quick burst per batch (confirmed
-        via live testing: 20 symbols in ~0.25s), not a long-running session.
-        This mirrors exactly how the official EFG app computes top movers
-        (confirmed with the backend team) — it is NOT a dedicated backend
-        endpoint. See :meth:`top_gainers`/:meth:`top_losers` for the cheaper,
-        one-shot (but potentially stale or incomplete) REST alternative.
+        Subscribes to SymbolStatistics for the FULL real-equity universe
+        (via :meth:`list_stocks`, filtered to ``security_class_name`` in
+        ``LocalSecurity_IN``/``LocalSecurity_OUT``/``OTC`` — real equities
+        only, excluding Tbills, bonds, futures, etc. which have no
+        meaningful ``change_pct``/gainer-loser concept — never truncated),
+        in consecutive batches of up to ``limit`` concurrent subscriptions
+        at a time: captures each symbol's first snapshot event,
+        unsubscribes the batch, then moves on to the next batch — a quick
+        burst per batch (confirmed via live testing: 20 symbols in ~0.25s),
+        not a long-running session. This mirrors exactly how the official
+        EFG app computes top movers (confirmed with the backend team) — it
+        is NOT a dedicated backend endpoint. See
+        :meth:`top_gainers`/:meth:`top_losers` for the cheaper, one-shot
+        (but potentially stale or incomplete) REST alternative.
 
         The initial snapshot alone was confirmed via live testing to reliably
         carry real change/change_pct data (``isSnapshot() == True``), so
@@ -910,10 +996,6 @@ class Client:
         predecessor's approach — is unnecessary and avoids the
         long-running-streaming-session reliability gap found elsewhere in
         this SDK's testing (see repo notes).
-
-        Uses :meth:`list_tradeable_stocks` (not :meth:`list_stocks`) so bonds,
-        sukuk, and rights issues — which have no meaningful price-change data
-        — are never subscribed to.
 
         NOTE: not yet verified outside market hours — snapshot change-data
         availability when the market is closed is unconfirmed.
@@ -923,13 +1005,11 @@ class Client:
                 once — matching the SDK's own documented streaming
                 concurrency guidance (proposed per-user caps of 10/30/50 by
                 tier). Defaults to 50. NOT "how many stocks to sample" — the
-                full tradeable universe is always covered regardless of this
-                value; it only controls batch size, trading off speed
+                full real-equity universe is always covered regardless of
+                this value; it only controls batch size, trading off speed
                 (bigger batches = fewer round trips = faster) against
                 concurrent load (bigger batches = more simultaneous
-                subscriptions at once). E.g. 256 tradeable stocks at
-                ``limit=50`` is ~6 batches, so total time is roughly 6x a
-                single batch's duration, not instant.
+                subscriptions at once).
             market_id: Market identifier. Defaults to configured default.
             timeout: Max seconds to wait for all snapshots in EACH batch
                 before moving on — applies independently per batch, not to
@@ -937,13 +1017,18 @@ class Client:
                 batches from running.
 
         Returns:
-            ``list[TopMover]`` covering the full tradeable universe, sorted
-            by ``change_pct`` descending (gainers first, losers last). May be
-            shorter than the true universe count if some batch(es) had
-            symbols whose snapshots didn't arrive within ``timeout``.
+            ``list[TopMover]`` covering the full real-equity universe,
+            sorted by ``change_pct`` descending (gainers first, losers
+            last). May be shorter than the true universe count if some
+            batch(es) had symbols whose snapshots didn't arrive within
+            ``timeout``.
         """
         mid = market_id if market_id is not None else self._settings.default_market_id
-        stocks = [s for s in self.list_tradeable_stocks(market_id=mid) if s.symbol]
+        stocks = [
+            s
+            for s in self.list_stocks(market_id=mid)
+            if s.symbol and s.security_class_name in _TOP_MOVERS_ELIGIBLE_CLASSES
+        ]
 
         results: list[TopMover] = []
         for start in range(0, len(stocks), limit):
@@ -1408,7 +1493,18 @@ class Client:
                 expire_date = datetime.now(_CAIRO_TZ)
         else:
             order_price = limit
-            expire_term = OrderExpireTerm.GOOD_TILL_DATE if expire == "gtd" else OrderExpireTerm.DAY
+            if operation == OperationType.SELL_SAME_DAY:
+                # Confirmed live 2026-09-29: same-day settlement limit sells
+                # reject both DAY(7) ("...must be 'Valid Till Date'") and
+                # GOOD_TILL_DATE(8) ("Market not allow Expiry Term:
+                # GoodTillTime") — UNKNOWN_2 is the value that's actually
+                # accepted here, same as market orders, with no expireDate
+                # needed. t1/t2 limit sells are unaffected (keep DAY/GTD).
+                expire_term = OrderExpireTerm.UNKNOWN_2
+            else:
+                expire_term = (
+                    OrderExpireTerm.GOOD_TILL_DATE if expire == "gtd" else OrderExpireTerm.DAY
+                )
 
         request = OrderRequest(
             profile_id=profile_id,

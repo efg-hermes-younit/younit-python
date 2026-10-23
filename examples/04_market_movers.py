@@ -6,7 +6,7 @@ This example demonstrates:
 - Local symbol search
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -31,7 +31,10 @@ with Client() as client:
     # Trending stocks
     print("=== Trending Stocks ===")
     for stock in client.trending_stocks()[:5]:
-        print(f"  [{stock.stock_id}] {stock.symbol:<8} {stock.short_name:<22}  reuters={stock.reuters_code}  ccy={stock.currency}")
+        print(
+            f"  [{stock.stock_id}] {stock.symbol:<8} {stock.short_name:<22}"
+            f"  reuters={stock.reuters_code}  ccy={stock.currency}"
+        )
 
     print()
 

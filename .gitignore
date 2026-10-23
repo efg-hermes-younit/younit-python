@@ -85,10 +85,12 @@ Thumbs.db
 
 # Secrets
 *.pem
-# Exception: pinned TLS cert for prod identity host (broken chain workaround,
-# not a secret — public cert content). SDK depends on this file at runtime
-# for cert pinning. See src/younit/certs/efghermesone-identity.pem header.
-!src/younit/certs/*.pem
+# Exception: retired pinned TLS cert for prod identity host (not a secret —
+# public cert content). No longer used by the SDK at runtime (pinning was
+# removed 2026-09-13, see CHANGELOG.md); kept here only as rollback evidence.
+# See diagnostics/efghermesone-identity-pinned-cert.pem header.
+!diagnostics/*.pem
+diagnostics/
 *.key
 *.cert
 

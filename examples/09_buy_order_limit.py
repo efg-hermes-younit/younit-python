@@ -13,7 +13,7 @@ This example demonstrates:
 - Handling order errors, including InvalidOrder for out-of-range prices
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -27,7 +27,10 @@ with Client() as client:
     limit_price = round(quote.last * 0.95, 1)  # 1% below market
 
     print(f"Placing LIMIT BUY: {QUANTITY} x {SYMBOL} @ {limit_price:.2f} EGP")
-    print(f"  (Market price: {quote.last:.2f}, allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})")
+    print(
+        f"  (Market price: {quote.last:.2f}, "
+        f"allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})"
+    )
 
     try:
         order = client.buy_limit(
@@ -37,6 +40,9 @@ with Client() as client:
         )
         print(f"OK: Order submitted — orderId: {order.order_id}")
         print(f"    status: {order.status}")
+        # status_text is the real, populated status (status is reserved for
+        # unconfirmed numeric codes and is currently always None)
+        print(f"    status_text: {order.status_text}")
 
     except InsufficientFunds as exc:
         print(f"FAILED: Insufficient funds: {exc}")
@@ -49,4 +55,3 @@ with Client() as client:
 
     except APIError as exc:
         print(f"FAILED: Order request failed ({exc.status_code}): {exc.message}")
-        

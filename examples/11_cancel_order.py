@@ -11,8 +11,10 @@ This example demonstrates:
 - Confirming the cancellation via get_order()
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
+
+from time import sleep
 
 from younit import Client
 from younit.exceptions import APIError, BadRequest, InsufficientFunds, NotFound, OrderRejected
@@ -34,7 +36,7 @@ with Client() as client:
     try:
         order = client.buy_limit(symbol=SYMBOL, qty=QUANTITY, price=limit_price)
     except (InsufficientFunds, OrderRejected, APIError) as exc:
-        raise SystemExit(f"FAILED: Could not place the initial order: {exc}")
+        raise SystemExit(f"FAILED: Could not place the initial order: {exc}") from None
 
     if order.order_id is None:
         raise SystemExit(
@@ -48,6 +50,7 @@ with Client() as client:
     # Step 2: Cancel the order
     # ------------------------------------------------------------------
     print(f"Cancelling order {order.order_id}...")
+    sleep(5)  # brief pause to ensure the order is registered before attempting cancellation
 
     try:
         cancelled = client.cancel_order(order.order_id)
@@ -59,7 +62,9 @@ with Client() as client:
             except APIError as exc:
                 print(f"    (Could not fetch updated status: {exc})")
         else:
-            print(f"FAILED: Order {order.order_id} cancel returned false (may already be executed).")
+            print(
+                f"FAILED: Order {order.order_id} cancel returned false (may already be executed)."
+            )
 
     except NotFound:
         print(f"FAILED: Order {order.order_id} not found.")

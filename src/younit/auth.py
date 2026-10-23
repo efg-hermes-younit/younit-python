@@ -1,53 +1,32 @@
-"""Authentication and token lifecycle management for the Younit API SDK.
+"""Public-key authentication and token lifecycle management.
 
-Implements the two-step partner authentication flow documented in the
-partner integration guide:
-
-1. ``POST /connect/token`` — exchange partner credentials for a server token
-2. ``POST /connect/iframe-access`` — exchange server token for a client token
-   scoped to a specific trading UUID
-
-Token storage is pluggable via the :class:`TokenStore` protocol. The default
-implementation is :class:`InMemoryTokenStore`.
-
-Proactive refresh: tokens are refreshed 5 minutes before expiry.
-Reactive refresh: a 401 response triggers a single refresh-and-retry.
-Token lifetimes are always read from ``expires_in`` in the response — never hardcoded.
+Tokens are refreshed five minutes before expiry and once after an API 401.
+Token lifetimes are read from the response, never hardcoded.
 """
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Protocol, runtime_checkable
 
 import httpx
 
-from younit.config import Settings
+from younit.config import _TOKEN_URL, Settings
 from younit.exceptions import AuthError, InvalidCredentials, TokenExpired
+from younit.http import build_default_headers
 from younit.logging import get_logger
 
 _log = get_logger(__name__)
-
-# How many seconds before expiry to proactively refresh
-_REFRESH_BUFFER_SECONDS = 300  # 5 minutes
-
-
-# ---------------------------------------------------------------------------
-# Token store protocol
-# ---------------------------------------------------------------------------
+_REFRESH_BUFFER_SECONDS = 300
 
 
 @runtime_checkable
 class TokenStore(Protocol):
-    """Protocol for pluggable token storage.
-
-    Implement this to store tokens in Redis, a database, or any other
-    durable store. The default :class:`InMemoryTokenStore` keeps tokens
-    in memory for the lifetime of the Client.
-    """
+    """Protocol for pluggable token storage."""
 
     def get(self, key: str) -> str | None:
-        """Retrieve a token value by key. Returns None if not found."""
+        """Retrieve a token value by key."""
         ...
 
     def set(self, key: str, value: str) -> None:
@@ -56,11 +35,7 @@ class TokenStore(Protocol):
 
 
 class InMemoryTokenStore:
-    """Default token store: keeps tokens in memory.
-
-    Tokens do not persist across process restarts. Suitable for
-    short-lived scripts and single-process applications.
-    """
+    """Keep tokens in memory for the lifetime of the client."""
 
     def __init__(self) -> None:
         self._store: dict[str, str] = {}
@@ -74,19 +49,14 @@ class InMemoryTokenStore:
         self._store[key] = value
 
 
-# ---------------------------------------------------------------------------
-# Token record
-# ---------------------------------------------------------------------------
-
-
 class _TokenRecord:
-    """Holds a token value with its expiry timestamp."""
+    """Hold a token value, type, and monotonic expiry timestamp."""
 
-    __slots__ = ("expires_at", "value")
+    __slots__ = ("expires_at", "token_type", "value")
 
-    def __init__(self, value: str, expires_in: int) -> None:
+    def __init__(self, value: str, expires_in: int, token_type: str) -> None:
         self.value = value
-        # expires_in is seconds from now; we store the absolute expiry timestamp
+        self.token_type = token_type
         self.expires_at = time.monotonic() + expires_in
 
     def is_expired(self) -> bool:
@@ -95,30 +65,38 @@ class _TokenRecord:
 
     def needs_refresh(self) -> bool:
         """Return True if the token should be proactively refreshed."""
-        return time.monotonic() >= (self.expires_at - _REFRESH_BUFFER_SECONDS)
+        return time.monotonic() >= self.expires_at - _REFRESH_BUFFER_SECONDS
 
 
-# ---------------------------------------------------------------------------
-# Identity provider
-# ---------------------------------------------------------------------------
+def _parse_token_response(response: httpx.Response) -> _TokenRecord:
+    """Parse the public-keys token schema, optionally inside ``data``."""
+    try:
+        top_level = response.json()
+    except ValueError:
+        raise AuthError(
+            f"Token request returned non-JSON data (HTTP {response.status_code})."
+        ) from None
+    if not isinstance(top_level, dict):
+        raise AuthError("Token response must be a JSON object.")
+    nested = top_level.get("data")
+    payload = nested if isinstance(nested, dict) else top_level
+    token = payload.get("accessToken")
+    expires_in = payload.get("expiresIn")
+    token_type = payload.get("tokenType")
+    if not isinstance(token, str) or not token.strip():
+        keys = sorted(str(key) for key in top_level)
+        raise AuthError(
+            f"Token response missing or invalid 'accessToken'; top-level keys received: {keys}."
+        )
+    if type(expires_in) is not int or expires_in <= 0:
+        raise AuthError("Token response missing or invalid 'expiresIn'.")
+    if not isinstance(token_type, str) or not token_type.strip():
+        raise AuthError("Token response missing or invalid 'tokenType'.")
+    return _TokenRecord(token, expires_in, token_type)
 
 
 class IdentityProvider:
-    """Manages the full partner→client token lifecycle.
-
-    Users of the SDK never interact with this class directly.
-    The :class:`~younit.client.Client` constructs and owns one instance.
-
-    Token flow:
-    1. Fetch server token via ``POST /connect/token``
-    2. Fetch client token via ``POST /connect/iframe-access``
-    3. Proactively refresh the client token 5 minutes before expiry
-    4. On 401, refresh once and retry; raise :class:`~younit.exceptions.AuthError`
-       if the refresh also fails
-
-    Token lifetimes are always read from ``expires_in`` in the response.
-    Never hardcoded.
-    """
+    """Acquire and refresh the client token using the public-keys endpoint."""
 
     def __init__(
         self,
@@ -129,192 +107,115 @@ class IdentityProvider:
         self._settings = settings
         self._http = http
         self._store = store or InMemoryTokenStore()
-
-        self._server_token: _TokenRecord | None = None
-        self._client_token: _TokenRecord | None = None
-
-    # ------------------------------------------------------------------
-    # Public interface
-    # ------------------------------------------------------------------
+        self._token: _TokenRecord | None = None
 
     def authenticate(self) -> None:
-        """Perform the full two-step authentication flow.
+        """Authenticate using TRADING_ID and API_KEY."""
+        self._fetch_token()
 
-        Called automatically on :class:`~younit.client.Client` construction.
-
-        Raises:
-            InvalidCredentials: If the partner credentials are rejected.
-            AuthError: On any other authentication failure.
-        """
-        try:
-            self._fetch_server_token()
-        except (AuthError, KeyboardInterrupt) as exc:
-            # On Windows, the SSL handshake can be interrupted by a queued SIGINT
-            # (e.g. during debugger attachment). Retry once after a short pause.
-            _log.debug("auth_connect_retry", reason=type(exc).__name__)
-            time.sleep(0.2)
-            self._fetch_server_token()
-        self._fetch_client_token()
-
-    def get_client_token(self) -> str:
-        """Return a valid client token, refreshing proactively if needed.
-
-        Returns:
-            The current client bearer token string.
-
-        Raises:
-            TokenExpired: If the token cannot be refreshed.
-            AuthError: On authentication failure.
-        """
-        if self._client_token is None or self._client_token.needs_refresh():
+    def get_token(self) -> str:
+        """Return a valid bearer token, refreshing before expiry."""
+        if self._token is None or self._token.needs_refresh():
             _log.info("proactive_token_refresh", reason="expiry_approaching")
-            self._refresh_client_token()
-        elif self._client_token.is_expired():
-            _log.warning("client_token_expired", action="refreshing")
-            self._refresh_client_token()
+            self._fetch_token()
+        if self._token is None or self._token.is_expired():
+            raise TokenExpired("Token expired and could not be refreshed.")
+        return self._token.value
 
-        if self._client_token is None or self._client_token.is_expired():
-            raise TokenExpired("Client token expired and could not be refreshed.")
-
-        return self._client_token.value
+    def get_authorization(self) -> str:
+        """Return the current REST Authorization header value."""
+        token = self.get_token()
+        token_record = self._require_token()
+        return f"{token_record.token_type} {token}"
 
     def handle_401(self) -> str:
-        """Handle a 401 response by refreshing the client token once.
-
-        Returns:
-            The new client bearer token string.
-
-        Raises:
-            AuthError: If the refresh attempt also fails.
-        """
+        """Re-authenticate once after an API 401."""
         _log.warning("got_401_refreshing_token")
+        self._fetch_token()
+        return self._require_token().value
+
+    def handle_401_authorization(self) -> str:
+        """Re-authenticate once and return the new REST authorization value."""
+        self.handle_401()
+        token_record = self._require_token()
+        return f"{token_record.token_type} {token_record.value}"
+
+    def _require_token(self) -> _TokenRecord:
+        """Return the current token or raise if authentication produced none."""
+        if self._token is None:
+            raise AuthError("Authentication failed: no token available.")
+        return self._token
+
+    def _response_message(self, response: httpx.Response) -> str:
+        """Extract a server error message without echoing credential fields."""
         try:
-            self._refresh_client_token()
-        except AuthError:
-            raise
-        except Exception as exc:
-            raise AuthError(f"Token refresh after 401 failed: {exc}") from exc
-
-        if self._client_token is None:
-            raise AuthError("Token refresh after 401 produced no token.")
-
-        return self._client_token.value
-
-    # ------------------------------------------------------------------
-    # Private methods
-    # ------------------------------------------------------------------
-
-    def _fetch_server_token(self) -> None:
-        """Fetch the server-to-server token from POST /connect/token."""
-        url = f"{self._settings.identity_url}/connect/token"
-        data = {
-            "grant_type": "partner_credentials",
-            "partner_id": self._settings.partner_id,
-            "partner_secret": self._settings.partner_secret,
-            "scope": self._settings.scope_string,
-        }
-
-        _log.info("fetching_server_token", url=url, scope=self._settings.scope_string)
-
-        try:
-            response = self._http.post(
-                url,
-                data=data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-        except Exception as exc:
-            raise AuthError(f"Failed to reach identity provider: {exc}") from exc
-
-        if response.status_code == 401:
-            raise InvalidCredentials(
-                "Partner credentials rejected by the identity provider. "
-                "Verify EFG_PARTNER_ID and EFG_PARTNER_SECRET."
-            )
-
-        if not response.is_success:
-            raise AuthError(
-                f"Server token request failed with HTTP {response.status_code}: {response.text}"
-            )
-
-        content_type = response.headers.get("content-type", "")
-        if "json" not in content_type:
-            raise AuthError(
-                f"Server token request returned unexpected content-type '{content_type}' "
-                f"(HTTP {response.status_code}). "
-                "This is typically caused by a firewall or proxy blocking the request. "
-                f"Response: {response.text[:300]!r}"
-            )
-
-        payload = response.json()
-        # API wraps responses in {"messages": ..., "data": {...}}
-        payload = payload.get("data") or payload
-        token = payload.get("access_token")
-        expires_in = payload.get("expires_in")
-
-        if not token:
-            raise AuthError("Server token response missing 'access_token'.")
-        if not isinstance(expires_in, int):
-            raise AuthError("Server token response missing or invalid 'expires_in'.")
-
-        self._server_token = _TokenRecord(token, expires_in)
-        _log.info("server_token_acquired", expires_in_seconds=expires_in)
-
-    def _fetch_client_token(self) -> None:
-        """Fetch the client-scoped token from POST /connect/iframe-access."""
-        if self._server_token is None or self._server_token.is_expired():
-            _log.info("server_token_expired_or_missing", action="refetching")
-            self._fetch_server_token()
-
-        if self._server_token is None:
-            raise AuthError("Server token unavailable after fetch attempt.")
-
-        url = f"{self._settings.identity_url}/connect/iframe-access"
-
-        _log.info(
-            "fetching_client_token",
-            url=url,
-            # trading_uuid intentionally not logged — treat as semi-sensitive
+            payload = response.json()
+        except ValueError:
+            return "Non-JSON response from token endpoint."
+        if not isinstance(payload, dict):
+            return "Unexpected error response from token endpoint."
+        messages = [
+            payload[key]
+            for key in ("messages", "message", "error_description", "error")
+            if payload.get(key)
+        ]
+        # Only render strings: never stringify an object that might contain a token.
+        parts: list[str] = []
+        for message in messages:
+            if isinstance(message, str):
+                parts.append(message)
+            elif isinstance(message, list):
+                parts.extend(part for part in message if isinstance(part, str))
+        text = "; ".join(parts) or "Token endpoint rejected the request."
+        sensitive = [
+            self._settings.trading_id,
+            self._settings.api_key.get_secret_value(),
+        ]
+        for section in (payload, payload.get("data")):
+            if isinstance(section, dict):
+                sensitive.extend(
+                    value
+                    for key in (
+                        "accessToken",
+                        "client_token",
+                        "access_token",
+                        "token",
+                        "secret",
+                    )
+                    if isinstance(value := section.get(key), str) and value
+                )
+        if self._token is not None:
+            sensitive.append(self._token.value)
+        for value in sorted(sensitive, key=len, reverse=True):
+            text = text.replace(value, "[REDACTED]")
+        return re.sub(
+            r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b",
+            "[REDACTED]",
+            text,
         )
 
+    def _fetch_token(self) -> None:
+        _log.info("fetching_token")
         try:
             response = self._http.post(
-                url,
-                json={"tradingUuid": self._settings.trading_uuid},
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {self._server_token.value}",
+                _TOKEN_URL,
+                json={
+                    "tradingId": self._settings.trading_id,
+                    "secret": self._settings.api_key.get_secret_value(),
                 },
+                headers={**build_default_headers(self._settings), "Accept": "application/json"},
+                auth=httpx.Auth(),  # Token requests must not invoke REST authentication.
+                follow_redirects=False,
             )
-        except Exception as exc:
-            raise AuthError(f"Failed to fetch client token: {exc}") from exc
-
-        if response.status_code == 401:
-            raise InvalidCredentials(
-                "Server token was rejected by /connect/iframe-access. "
-                "The server token may have expired."
-            )
-
+        except httpx.HTTPError as exc:
+            raise AuthError(f"Failed to reach token endpoint ({type(exc).__name__}).") from None
         if not response.is_success:
-            raise AuthError(
-                f"Client token request failed with HTTP {response.status_code}: {response.text}"
+            error_type = InvalidCredentials if response.status_code == 401 else AuthError
+            raise error_type(
+                f"Token request failed with HTTP {response.status_code}: "
+                f"{self._response_message(response)}",
+                status_code=response.status_code,
             )
-
-        payload = response.json()
-        # API wraps responses in {"messages": ..., "data": {...}}
-        payload = payload.get("data") or payload
-        token = payload.get("client_token")
-        expires_in = payload.get("expires_in")
-
-        if not token:
-            raise AuthError("Client token response missing 'client_token'.")
-        if not isinstance(expires_in, int):
-            raise AuthError("Client token response missing or invalid 'expires_in'.")
-
-        self._client_token = _TokenRecord(token, expires_in)
-        _log.info("client_token_acquired", expires_in_seconds=expires_in)
-
-    def _refresh_client_token(self) -> None:
-        """Refresh the client token, re-fetching the server token if needed."""
-        if self._server_token is None or self._server_token.needs_refresh():
-            self._fetch_server_token()
-        self._fetch_client_token()
+        token = _parse_token_response(response)
+        self._token = token
+        _log.info("token_acquired")

@@ -8,7 +8,7 @@ This example demonstrates:
 - Buying power for a specific stock
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -36,7 +36,10 @@ with Client() as client:
     print(f"  Total Stocks:       {summary.total_stocks:.2f}")
     print(f"  Total Balance:      {summary.total_balance:.2f}")
     print(f"  Realized P&L:       {summary.realized_profit:+.2f}")
-    print(f"  Unrealized P&L:     {summary.unrealized_profit:+.2f}  ({summary.unrealized_profit_pct:+.2f}%)")
+    print(
+        f"  Unrealized P&L:     {summary.unrealized_profit:+.2f}"
+        f"  ({summary.unrealized_profit_pct:+.2f}%)"
+    )
     print(f"  Profit/Loss:        {summary.profit_or_loss:+.2f}")
     print()
 
@@ -85,4 +88,3 @@ with Client() as client:
                 f"  ccy={pos.currency}"
             )
     print()
-

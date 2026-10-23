@@ -70,7 +70,7 @@ class StreamingClient:
     Lightstreamer's background thread.  User callbacks are invoked on that
     thread — keep them fast and non-blocking.
 
-    Token refresh: when the SDK refreshes the OAuth client token, call
+    Token refresh: when the SDK refreshes the client token, call
     :meth:`update_token` to push the new token to Lightstreamer without
     disconnecting.
 
@@ -159,7 +159,7 @@ class StreamingClient:
         return self._connected
 
     def update_token(self, new_token: str) -> None:
-        """Push a refreshed OAuth token to the Lightstreamer connection.
+        """Push a refreshed bearer token to the Lightstreamer connection.
 
         Called automatically by the :class:`~younit.client.Client` when
         the client token is refreshed.  Updates the connection password
@@ -344,7 +344,7 @@ class StreamingClient:
                 (one client may have multiple profiles/sub-accounts).
                 Defaults to the cached ``profileId`` from the last
                 :meth:`~younit.client.Client.buying_power` or order call,
-                falling back to ``trading_uuid`` if not yet resolved.
+                falling back to ``trading_id`` if not yet resolved.
 
         Returns:
             :class:`~younit.models.streaming.Subscription` handle.
@@ -364,7 +364,7 @@ class StreamingClient:
             if pid is not None:
                 account_id = str(pid)
         if account_id is None:
-            account_id = self._settings.trading_uuid
+            account_id = self._settings.trading_id
         item = f"po{account_id}"
 
         def _callback(raw: dict[str, str | None]) -> None:
@@ -505,7 +505,7 @@ class StreamingClient:
             _STREAMING_URL,
             self._settings.streaming_adapter,
         )
-        ls_client.connectionDetails.setUser(self._settings.trading_uuid)
+        ls_client.connectionDetails.setUser(self._settings.trading_id)
         ls_client.connectionDetails.setPassword(token)
 
         # Register connection status listener

@@ -10,6 +10,20 @@ pip install younit
 younit-mcp --help
 ```
 
+## Authentication
+
+Set `TRADING_ID` and `API_KEY` in the server environment or a `.env` file in
+its working directory. The MCP server uses `Client()`, which authenticates via
+`POST https://tradingapis.efghermesone.com/api/public-keys/token` with JSON
+`{"tradingId": "<TRADING_ID>", "secret": "<API_KEY>"}`. REST and streaming use
+the same returned token, with automatic proactive refresh and one retry on 401.
+Never include real credentials in MCP configuration committed to source control.
+
+The production response contains `accessToken`, `expiresIn`, and `tokenType`
+inside `data`; the parser also accepts those fields at the top level.
+
+For the canonical authentication guide, see [docs/mcp.md](../../docs/mcp.md).
+
 ## Transports
 
 ### stdio (Claude Desktop)
@@ -46,20 +60,25 @@ All safety controls are configured via environment variables — never in code.
 | Tool | Description |
 |---|---|
 | `quote` | Current price snapshot for a stock |
+| `market_status` | Whether the EGX market is currently open or closed, live |
 | `account_info` | Account details and profile IDs |
 | `portfolio` | Cash and margin portfolio summary |
 | `positions` | All open stock positions |
 | `position` | Single position by symbol |
+| `positions_split` | Positions reliably split into stocks vs funds |
 | `buying_power` | Available buying power for a stock |
-| `top_gainers` | Top gaining stocks today |
-| `top_losers` | Top losing stocks today |
-| `trending_stocks` | Most active stocks |
-| `search_stocks` | Search stocks by ticker or name |
+| `top_movers` | Full tradeable universe sorted by change %, gainers first (live, takes a few seconds) |
+| `trending_stocks` | Most active stocks (includes same-day/T0 eligibility classification) |
+| `search_stocks` | Search stocks by ticker or name (includes same-day/T0 eligibility classification) |
+| `list_by_class` | Stocks filtered by one or more security classifications (e.g. OTC) |
+| `list_same_day_eligible` | Stocks eligible for same-day (T0) trading |
+| `list_otc` | OTC-classified stocks |
 | `get_order` | Fetch an order by ID |
 | `funds` | List available investment funds |
 | `fund_performance` | Fund performance chart data |
+| `fund_positions` | Open fund positions (confirmed empty for this account — see `positions_split`) |
 | `stock_info` | Detailed trading info for a stock (same data as `quote`) |
-| `list_stocks` | Full list of all EGX-listed stocks |
+| `list_stocks` | Full list of all EGX-listed stocks (includes same-day/T0 eligibility classification) |
 | `historical_prices` | OHLCV candle data (Day / Week / Month / Year) |
 | `streaming_quote` | Live price snapshot via the Lightstreamer feed |
 | `streaming_orders` | Live order status snapshot via the ActiveOrders stream |
@@ -69,9 +88,12 @@ All safety controls are configured via environment variables — never in code.
 | Tool | Description |
 |---|---|
 | `buy` | Place a limit or market buy order |
-| `sell` | Place a limit or market sell order |
+| `sell` | Place a limit or market sell order (t2/t0/t1 settlement via `settlement`) |
 | `cancel_order` | Cancel an open order |
 | `amend_order` | Modify quantity/price of an open order |
+| `buy_fund` | Place a buy order for a mutual fund |
+| `sell_fund` | Place a sell (redemption) order for a mutual fund |
+| `cancel_fund_order` | Cancel an open fund order |
 
 ## Example Prompt
 

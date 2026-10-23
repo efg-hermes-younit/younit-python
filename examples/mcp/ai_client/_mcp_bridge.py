@@ -72,7 +72,6 @@ async def connect_to_server() -> AsyncIterator[ClientSession]:
             raise
 
 
-
 async def list_tools(session: ClientSession) -> list[types.Tool]:
     """List every tool the connected MCP server currently exposes."""
     result = await session.list_tools()

@@ -17,19 +17,19 @@ list_orders()) for that.
 
 Prerequisites:
 - pip install lightstreamer-client-lib
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 import time
 
 from younit import Client, OrderUpdate
 
-SYMBOL = "EAST"
-STREAM_SECONDS = 120  # watch for this long after placing
+SYMBOL = "ABUK"
+STREAM_SECONDS = 60 * 10  # watch for this long after placing
 
 
 def on_order_update(update: OrderUpdate) -> None:
-    print('Subscriped to order update:...')
+    print("Subscriped to order update:...")
     price = f"{update.price:.2f} EGP" if update.price else "MARKET"
     print(
         f"  [{update.command:>6}] order={update.order_number}  "
@@ -48,12 +48,12 @@ with Client() as client:
     print("Subscribed — waiting 1s for initial snapshot...\n")
     time.sleep(1)
 
-    quote = client.quote(SYMBOL)
-    limit_price = round(quote.last * 0.95, 1)
-    # limit_price = round(quote.max_price*0.995, 1)
-    print(f"Placing LIMIT BUY: 1 x {SYMBOL} @ {limit_price:.2f} EGP (market {quote.last:.2f})\n")
-    order = client.buy_limit(SYMBOL, qty=1, price=limit_price)
-    print(f"Order placed — orderId: {order.order_id}\n")
+    # quote = client.quote(SYMBOL)
+    # limit_price = round(quote.last * 0.99, 1)
+    # print(f"Placing LIMIT BUY: 1 x {SYMBOL} @ {limit_price:.2f} EGP (market {quote.last:.2f})\n")
+    # order = client.buy_limit(SYMBOL, qty=1, price=limit_price)
+    # order = client.buy_market(SYMBOL, qty=1)
+    # print(f"Order placed — orderId: {order.order_id}\n")
 
     print(f"Watching stream for {STREAM_SECONDS}s (Ctrl-C to stop early)...\n")
     try:

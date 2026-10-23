@@ -10,13 +10,12 @@ This example demonstrates:
   against fund orders as an observed backend behavior)
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
 from younit.exceptions import APIError, InvalidOrder, OrderRejected
 from younit.models.funds import Fund
-
 
 with Client() as client:
     funds = client.list_funds()
@@ -27,7 +26,9 @@ with Client() as client:
     quantity = 1
     price = fund.nav
 
-    print(f"Placing fund BUY: [{fund.fund_id}] {fund.name} x{quantity} @ {price:.4f} {fund.currency}")
+    print(
+        f"Placing fund BUY: [{fund.fund_id}] {fund.name} x{quantity} @ {price:.4f} {fund.currency}"
+    )
 
     try:
         order = client.buy_fund(
@@ -37,7 +38,7 @@ with Client() as client:
             is_ipo_fund=fund.is_ipo,
         )
     except (InvalidOrder, OrderRejected, APIError) as exc:
-        raise SystemExit(f"FAILED: Could not place the fund order: {exc}")
+        raise SystemExit(f"FAILED: Could not place the fund order: {exc}") from None
 
     print(f"OK: Order placed — orderId: {order.order_id}  fundId: {order.fund_id}\n")
 

@@ -10,7 +10,7 @@ connection; this example focuses on a single symbol in more depth.
 
 Prerequisites:
 - pip install lightstreamer-client-lib
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 import queue
@@ -52,8 +52,10 @@ with Client() as client:
     print(f"Received {updates.qsize()} update(s). Processing in order:\n")
 
     if updates.empty():
-        print(f"No updates received for {SYMBOL} — market may be closed, "
-              "or check the streaming connection.")
+        print(
+            f"No updates received for {SYMBOL} — market may be closed, "
+            "or check the streaming connection."
+        )
     else:
         count = 0
         while not updates.empty():

@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import sys
 import threading
+from dataclasses import asdict
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -98,6 +99,27 @@ def quote(symbol: str) -> dict[str, Any]:
 
 
 @app.tool()
+def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:
+    """Check whether the EGX market is currently open or closed, live.
+
+    Uses the live MarketStatistics stream — there is no REST endpoint for
+    this. Safe to call for read-only tools regardless of current market
+    hours; a closed market just means quotes/movers reflect the last session.
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+        timeout_seconds: Max seconds to wait for a live status update before
+            giving up. Default 8 seconds.
+
+    Returns:
+        "open" or "closed" if a recognized status arrived in time,
+        "unknown" if an unrecognized status code arrived, or
+        "unreachable" if no update arrived at all within the timeout.
+    """
+    return _get_client().market_status(market_id=market_id, timeout=timeout_seconds)
+
+
+@app.tool()
 def account_info() -> dict[str, Any]:
     """Get the authenticated client's account information and profile list.
 
@@ -156,6 +178,33 @@ def position(symbol: str) -> dict[str, Any] | None:
 
 
 @app.tool()
+def positions_split(market_id: int = 1) -> dict[str, Any]:
+    """Get the client's positions, reliably split into stocks vs funds.
+
+    Works around a confirmed backend bug where positions() mixes stock and
+    fund rows together, with fund rows reporting is_fund=False and a
+    garbled symbol. Use this instead of positions() whenever you need to
+    tell stock holdings apart from fund holdings, or to find fund
+    positions at all (fund_positions() is confirmed to return empty for
+    this account even when real fund holdings exist).
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+
+    Returns:
+        Dict with "stock_positions" and "fund_positions", each a list of
+        position dicts (quantity, average_price (EGP), current_price (EGP),
+        market_value (EGP), unrealized_pnl (EGP)). For fund_positions
+        entries, use "name" for display, not "symbol" (confirmed garbled).
+    """
+    stock_positions, fund_positions = _get_client().positions_split(market_id=market_id)
+    return {
+        "stock_positions": [p.model_dump() for p in stock_positions],
+        "fund_positions": [p.model_dump() for p in fund_positions],
+    }
+
+
+@app.tool()
 def buying_power(symbol: str) -> dict[str, Any]:
     """Get buying power and profile information for a specific EGX stock.
 
@@ -174,37 +223,35 @@ def buying_power(symbol: str) -> dict[str, Any]:
 
 
 @app.tool()
-def top_gainers(market_id: int = 1, limit: int = 10) -> list[dict[str, Any]]:
-    """Get the top gaining stocks on EGX today.
+def top_movers(market_id: int = 1, limit: int = 50) -> list[dict[str, Any]]:
+    """Get today's top gaining and losing stocks on EGX, computed live.
 
-    Returns stocks sorted by gain percentage, descending.
-
-    Args:
-        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
-        limit: Maximum number of stocks to return. Default 10.
-
-    Returns:
-        List of market mover dicts, each with symbol, last (EGP), change (EGP),
-        change_pct (%), and volume (shares).
-    """
-    return [m.model_dump() for m in _get_client().top_gainers(market_id=market_id, limit=limit)]
-
-
-@app.tool()
-def top_losers(market_id: int = 1, limit: int = 10) -> list[dict[str, Any]]:
-    """Get the top losing stocks on EGX today.
-
-    Returns stocks sorted by loss percentage, ascending (most negative first).
+    Returns EVERY actively-tradeable stock on the market, sorted by percentage
+    change descending — gainers first, losers last. Take the first few items
+    for top gainers, the last few for top losers. Computed the same way the
+    official EFG app does it (live snapshot bursts over the streaming feed),
+    NOT a REST lookup — this call takes a few seconds (roughly 1-6+ seconds
+    depending on market size) rather than returning instantly, so only use it
+    when the user actually needs current movers, not for every message.
 
     Args:
         market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
-        limit: Maximum number of stocks to return. Default 10.
+        limit: NOT a result-count cap — every tradeable stock is always
+            returned regardless of this value. This controls the internal
+            batch size (how many stocks are subscribed to concurrently per
+            round of live snapshots) and trades off speed against concurrent
+            load: higher = fewer round trips = faster, but more simultaneous
+            subscriptions at once. Default 50 (a few seconds total for the
+            full market). Leave at the default unless you have a specific
+            reason to change it.
 
     Returns:
-        List of market mover dicts, each with symbol, last (EGP), change (EGP),
-        change_pct (% negative for losers), and volume (shares).
+        List of mover dicts covering the full tradeable universe, sorted by
+        change_pct descending. Each has stock_id, symbol, name, last (EGP),
+        change (EGP), and change_pct (%). May be shorter than the full
+        universe if a few symbols' snapshots didn't arrive in time.
     """
-    return [m.model_dump() for m in _get_client().top_losers(market_id=market_id, limit=limit)]
+    return [asdict(m) for m in _get_client().get_top_movers(market_id=market_id, limit=limit)]
 
 
 @app.tool()
@@ -218,7 +265,9 @@ def trending_stocks(market_id: int = 1) -> list[dict[str, Any]]:
 
     Returns:
         List of stock info dicts with symbol, last price (EGP), change_pct (%),
-        and volume (shares).
+        volume (shares), security_class_name (e.g. "LocalSecurity_IN", "OTC";
+        null if unclassified), and is_same_day_eligible (bool; whether this
+        stock can be closed same-day via sell(settlement="t0")).
     """
     return [s.model_dump() for s in _get_client().trending_stocks(market_id=market_id)]
 
@@ -236,7 +285,10 @@ def search_stocks(query: str) -> list[dict[str, Any]]:
             e.g. "COM", "EFG", "HRHO".
 
     Returns:
-        List of matching stock info dicts with symbol and stock_id.
+        List of matching stock info dicts with symbol, stock_id,
+        security_class_name (e.g. "LocalSecurity_IN", "OTC"; null if
+        unclassified), and is_same_day_eligible (bool; whether this stock
+        can be closed same-day via sell(settlement="t0")).
     """
     return [s.model_dump() for s in _get_client().search_stocks(query)]
 
@@ -297,6 +349,26 @@ def fund_performance(fund_id: int, market_id: int = 1, filter_type: int = 3) -> 
 
 
 @app.tool()
+def fund_positions(market_id: int = 1) -> list[dict[str, Any]]:
+    """Get the client's current open fund positions.
+
+    WARNING: confirmed live to return an empty list for this account even
+    when real fund holdings exist (a backend-side issue with the underlying
+    endpoint). Use positions_split() instead until this is resolved — its
+    "fund_positions" half reliably reflects real holdings.
+
+    Args:
+        market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
+
+    Returns:
+        List of fund position dicts (fund_id, name, quantity,
+        qty_valid_for_sale, average_price, market_price, currency). Likely
+        empty — see warning above.
+    """
+    return [p.model_dump() for p in _get_client().fund_positions(market_id=market_id)]
+
+
+@app.tool()
 def stock_info(symbol: str) -> dict[str, Any]:
     """Get detailed trading information for a specific EGX stock.
 
@@ -319,15 +391,69 @@ def list_stocks(market_id: int = 1) -> list[dict[str, Any]]:
     """List all stocks available on EGX.
 
     Returns the complete set of listed stocks with their ticker symbols and
-    internal stock IDs. Useful for discovering available tickers.
+    internal stock IDs. Useful for discovering available tickers, and for
+    checking a stock's same-day (T0) eligibility before attempting a
+    settlement="t0" sell (see the sell() tool).
 
     Args:
         market_id: Market identifier. 1 = EGX (Egypt Stock Exchange). Default 1.
 
     Returns:
-        List of stock dicts, each with stock_id (integer) and symbol (ticker string).
+        List of stock dicts, each with stock_id (integer), symbol (ticker
+        string), security_class_name (e.g. "LocalSecurity_IN", "OTC"; null
+        if unclassified — a temporary snapshot-derived field, not live data),
+        and is_same_day_eligible (bool; True only if the stock is on the
+        live Intraday tradeable list — OTC stocks are never eligible).
     """
     return [s.model_dump() for s in _get_client().list_stocks(market_id=market_id)]
+
+
+@app.tool()
+def list_by_class(class_names: list[str]) -> list[dict[str, Any]]:
+    """List EGX stocks filtered by one or more security classifications.
+
+    Args:
+        class_names: One or more security_class_name values to include (OR
+            logic — a stock matching ANY of them is included), e.g.
+            ["OTC"] or ["LocalSecurity_IN", "LocalSecurity_OUT"]. See
+            list_stocks()'s security_class_name field for recognized
+            values. An unrecognized value raises an error rather than
+            silently returning nothing.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()) whose
+        security_class_name is in class_names.
+    """
+    return [s.model_dump() for s in _get_client().list_by_class(*class_names)]
+
+
+@app.tool()
+def list_same_day_eligible() -> list[dict[str, Any]]:
+    """List all EGX stocks eligible for same-day (T0) trading.
+
+    Thin convenience wrapper equivalent to filtering list_stocks() by
+    is_same_day_eligible=True. Use this to quickly find candidates for a
+    sell(settlement="t0") order instead of filtering list_stocks() yourself.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()), all with
+        is_same_day_eligible=True.
+    """
+    return [s.model_dump() for s in _get_client().list_same_day_eligible()]
+
+
+@app.tool()
+def list_otc() -> list[dict[str, Any]]:
+    """List all OTC-classified EGX stocks.
+
+    Equivalent to list_by_class(["OTC"]). OTC stocks are never eligible for
+    same-day (T0) settlement.
+
+    Returns:
+        List of stock dicts (same shape as list_stocks()), all with
+        security_class_name == "OTC".
+    """
+    return [s.model_dump() for s in _get_client().list_otc()]
 
 
 @app.tool()
@@ -481,7 +607,9 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def sell(symbol: str, qty: int, limit: float | None = None) -> dict[str, Any]:
+    def sell(
+        symbol: str, qty: int, limit: float | None = None, settlement: str = "t2"
+    ) -> dict[str, Any]:
         """Place a sell order for an EGX-listed stock.
 
         Implements the full 3-call order placement flow automatically.
@@ -498,6 +626,16 @@ def _register_write_tools() -> None:
                 the quantity held (see position()).
             limit: Limit price in EGP. If omitted, places a market sell
                 at the current bid price.
+            settlement: Settlement timing, as a friendly string: "t2"
+                (default, normal settlement), "t0" (or its alias
+                "same_day", closes a position bought the same day), or
+                "t1" (T+1 settlement). Same-day (t0) limit sells are fully
+                supported, including at a specific limit price — not just
+                market orders. Only stocks with is_same_day_eligible=True
+                (see list_stocks()/trending_stocks()/search_stocks()) can
+                actually be closed same-day; OTC-classified stocks
+                (security_class_name == "OTC") are never eligible and the
+                exchange will reject the order.
 
         Returns:
             Dict with order details: stock_id, operation_type, quantity (shares),
@@ -506,7 +644,63 @@ def _register_write_tools() -> None:
         safety = _get_safety()
         check_order_value(qty, limit, safety)
         check_daily_limit(_order_counter, safety)
-        result = _get_client().sell(symbol=symbol, qty=qty, limit=limit)
+        result = _get_client().sell(symbol=symbol, qty=qty, limit=limit, settlement=settlement)
+        _order_counter.increment()
+        return result.model_dump(mode="json")
+
+    @app.tool()
+    def buy_fund(fund_id: int, qty: int, price: float, is_ipo_fund: bool = False) -> dict[str, Any]:
+        """Place a buy order for a mutual fund.
+
+        Funds have no market-order concept — price is always required
+        (unlike buy(), which allows an omitted limit for a market order).
+
+        Safety controls apply:
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
+        - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
+        - EFG_SIMULATION: If true, order goes to paper trading environment
+
+        Args:
+            fund_id: Internal fund identifier (integer). Get from funds().
+            qty: Number of fund units to buy (positive integer).
+            price: Order price in EGP — use the fund's current NAV (see funds()).
+            is_ipo_fund: True if this is an IPO fund subscription. Default False.
+
+        Returns:
+            Dict with order details: fund_id, operation_type, quantity (units), price.
+        """
+        safety = _get_safety()
+        check_order_value(qty, price, safety)
+        check_daily_limit(_order_counter, safety)
+        result = _get_client().buy_fund(
+            fund_id=fund_id, qty=qty, price=price, is_ipo_fund=is_ipo_fund
+        )
+        _order_counter.increment()
+        return result.model_dump(mode="json")
+
+    @app.tool()
+    def sell_fund(fund_id: int, qty: int, price: float) -> dict[str, Any]:
+        """Place a sell (redemption) order for a mutual fund.
+
+        Safety controls apply:
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
+        - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
+        - EFG_SIMULATION: If true, order goes to paper trading environment
+
+        Args:
+            fund_id: Internal fund identifier (integer). Get from
+                fund_positions() or positions_split()'s "fund_positions".
+            qty: Number of fund units to sell (positive integer). Cannot
+                exceed qty_valid_for_sale on the held position.
+            price: Order price in EGP — use the position's current market_price.
+
+        Returns:
+            Dict with order details: fund_id, operation_type, quantity (units), price.
+        """
+        safety = _get_safety()
+        check_order_value(qty, price, safety)
+        check_daily_limit(_order_counter, safety)
+        result = _get_client().sell_fund(fund_id=fund_id, qty=qty, price=price)
         _order_counter.increment()
         return result.model_dump(mode="json")
 
@@ -525,6 +719,23 @@ def _register_write_tools() -> None:
             Dict with {"success": true} if the cancellation was accepted.
         """
         success = _get_client().cancel_order(order_id)
+        return {"success": success, "order_id": order_id}
+
+    @app.tool()
+    def cancel_fund_order(order_id: int) -> dict[str, Any]:
+        """Cancel an open fund order.
+
+        Uses the dedicated fund cancel endpoint — separate from
+        cancel_order(), which is for stocks.
+
+        Args:
+            order_id: The numeric fund order identifier (integer).
+                Get this from the response of buy_fund() or sell_fund().
+
+        Returns:
+            Dict with {"success": true} if the cancellation was accepted.
+        """
+        success = _get_client().cancel_fund_order(order_id)
         return {"success": success, "order_id": order_id}
 
     @app.tool()
@@ -584,9 +795,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Environment variables (required):
-  EFG_PARTNER_ID         Partner identifier
-  EFG_PARTNER_SECRET     Partner secret
-  EFG_TRADING_UUID       Client trading UUID
+  TRADING_ID            Trading identifier
+  API_KEY               Public-key authentication secret
 
 Safety settings (optional):
   EFG_MCP_READONLY             true/false (default: false)

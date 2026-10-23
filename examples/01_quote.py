@@ -8,7 +8,7 @@ The quote() call returns a Quote object (see models/market_data.py for
 the full field list and types) — the fields used below are a subset.
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -22,7 +22,7 @@ with Client() as client:
 
     print(f"Ticker:       {quote.symbol}")
     print(f"Last price:   {quote.last:.2f} EGP")
-    print(f"Price range:  {quote.min_price:.2f} – {quote.max_price:.2f} EGP")
+    print(f"Price range:  {quote.min_price:.2f} - {quote.max_price:.2f} EGP")
     print(f"Intraday:     {quote.is_intraday}")
     print(f"T+1:          {quote.is_tplus1}")
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import conftest as conf
 import httpx
+import pytest
 
 from younit.client import Client
 
@@ -26,20 +27,15 @@ RAW_STOCKS = [
 
 
 def _make_client(respx_mock) -> Client:
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/token").mock(
-        return_value=httpx.Response(200, json=conf.SERVER_TOKEN_RESPONSE)
-    )
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/iframe-access").mock(
+    respx_mock.post(conf.TOKEN_URL).mock(
         return_value=httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE)
     )
     respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/market/1").mock(
         return_value=httpx.Response(200, json=RAW_STOCKS)
     )
     return Client(
-        partner_id=conf.FAKE_PARTNER_ID,
-        partner_secret=conf.FAKE_PARTNER_SECRET,
-        trading_uuid=conf.FAKE_TRADING_UUID,
-        identity_url=FAKE_BASE_URL,
+        trading_id=conf.FAKE_TRADING_ID,
+        api_key=conf.FAKE_API_KEY,
         simulation=True,
         lazy_auth=True,
         lazy_symbols=True,
@@ -257,8 +253,17 @@ class TestHistoricalPrices:
         assert sent_params["DateTo"] == "2026-02-01"
 
 
-class TestListTradeableStocksCategoryEdgeCases:
-    def test_stock_list_types_wrapped_dict_and_bare_list(self, respx_mock):
+class TestListStocksCategoryEdgeCases:
+    @pytest.mark.parametrize(
+        ("intraday_response", "expected_eligible"),
+        [
+            ([{"id": 101, "reuterCode": "COMI.CA", "name": "H Co"}], True),
+            ({"data": [123, "skip-me"]}, False),
+        ],
+    )
+    def test_stock_list_types_wrapped_dict_and_bare_list(
+        self, respx_mock, intraday_response, expected_eligible
+    ):
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-lists-types/1").mock(
             return_value=httpx.Response(
                 200,
@@ -271,13 +276,9 @@ class TestListTradeableStocksCategoryEdgeCases:
             )
         )
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/1").mock(
-            return_value=httpx.Response(
-                200, json=[{"id": 1, "reuterCode": "HHH.CA", "name": "H Co"}]
-            )
-        )
-        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/3/3/1").mock(
-            return_value=httpx.Response(200, json={"data": [123, "skip-me"]})
+            return_value=httpx.Response(200, json=intraday_response)
         )
         client = _make_client(respx_mock)
-        stocks = client.list_tradeable_stocks()
-        assert any(s.symbol == "HHH" for s in stocks)
+        stocks = client.list_stocks()
+        assert stocks[0].symbol == "COMI"
+        assert stocks[0].is_same_day_eligible is expected_eligible

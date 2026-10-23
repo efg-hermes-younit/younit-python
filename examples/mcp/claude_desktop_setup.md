@@ -14,9 +14,8 @@ Add this block to your Claude Desktop configuration file.
       "command": "younit-mcp",
       "args": ["--transport", "stdio"],
       "env": {
-        "EFG_PARTNER_ID": "your-partner-id",
-        "EFG_PARTNER_SECRET": "your-partner-secret",
-        "EFG_TRADING_UUID": "your-trading-uuid",
+        "TRADING_ID": "your-trading-id",
+        "API_KEY": "your-api-key",
         "EFG_MCP_READONLY": "true",
         "EFG_MCP_MAX_ORDER_VALUE_EGP": "1000",
         "EFG_MCP_MAX_DAILY_ORDERS": "10"
@@ -46,7 +45,7 @@ When `EFG_MCP_READONLY=true`, Claude can:
 - `quote` — Current price snapshot (last, bid, ask, min/max, change)
 - `stock_info` — Detailed trading info for a stock (same as quote, by name)
 - `list_stocks` — Full list of all EGX-listed stocks
-- `top_gainers` / `top_losers` — Today's biggest movers
+- `top_movers` — Full tradeable universe sorted by change % (gainers first), computed live over a few seconds
 - `trending_stocks` — Most active stocks right now
 - `search_stocks` — Find stocks by partial ticker (e.g. "COM" → "COMI")
 - `historical_prices` — OHLCV candle data (Day / Week / Month / Year)

@@ -53,6 +53,31 @@ class StockInfo(BaseModel):
         last: Last traded price in EGP.
         is_intraday: True if this stock supports intraday trading.
         is_tplus1: True if this stock settles T+1.
+        security_class_id: Instrument-type classification (``_SecurityClassID``,
+            see :data:`~younit.enums.SECURITY_CLASS_NAMES`). TEMPORARY: this
+            is NOT live backend data — ``list_stocks()``'s own endpoint
+            always returns this as null, so it's enriched client-side from
+            a point-in-time snapshot (see
+            ``younit._security_class_snapshot``). ``None`` if the stock
+            isn't in that snapshot (e.g. listed after it was captured).
+            Check :attr:`Client.security_class_snapshot_captured_at` for
+            the snapshot's capture date. This scaffolding is meant to be
+            removed once list_stocks()'s backend response includes
+            ``_SecurityClassID`` natively — see
+            ``younit._security_class_snapshot``'s module docstring for the
+            removal checklist.
+        security_class_name: Human-readable name for ``security_class_id``
+            (e.g. ``"LocalSecurity_IN"``), looked up from
+            :data:`~younit.enums.SECURITY_CLASS_NAMES`. Same temporary,
+            snapshot-derived caveat as ``security_class_id`` applies.
+        is_same_day_eligible: True if this stock is on the Intraday
+            tradeable list (same-day/T0 eligible). Confirmed live: this
+            list is exclusively class 1 (``LocalSecurity_IN``) securities —
+            OTC stocks (``security_class_name == "OTC"``) and
+            LocalSecurity_OUT (class 2) are never same-day eligible; not
+            all class-1 stocks are on this list either, so this field
+            reflects live list membership on every :meth:`Client.list_stocks`
+            call, not something inferred from ``security_class_name`` alone.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -68,6 +93,9 @@ class StockInfo(BaseModel):
     last: float = Field(default=0.0, alias="price")
     is_intraday: bool = Field(default=False, alias="isIntraday")
     is_tplus1: bool = Field(default=False, alias="isTPlus1")
+    security_class_id: int | None = Field(default=None, alias="_SecurityClassID")
+    security_class_name: str | None = Field(default=None)
+    is_same_day_eligible: bool = Field(default=False)
 
 
 class MarketMover(BaseModel):

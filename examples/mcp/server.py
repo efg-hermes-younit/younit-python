@@ -13,9 +13,8 @@ Claude Desktop config (~/.config/claude/claude_desktop_config.json):
         "command": "younit-mcp",
         "args": ["--transport", "stdio"],
         "env": {
-          "EFG_PARTNER_ID": "your-partner-id",
-          "EFG_PARTNER_SECRET": "your-partner-secret",
-          "EFG_TRADING_UUID": "your-trading-uuid",
+          "TRADING_ID": "your-trading-id",
+          "API_KEY": "your-api-key",
           "EFG_MCP_READONLY": "true",
           "EFG_MCP_MAX_ORDER_VALUE_EGP": "1000",
           "EFG_MCP_MAX_DAILY_ORDERS": "10"

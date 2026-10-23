@@ -14,7 +14,7 @@ This example demonstrates:
 - Checking the result via get_order()
 
 Prerequisites:
-- Set EFG_PARTNER_ID, EFG_PARTNER_SECRET, EFG_TRADING_UUID in your environment
+- Set TRADING_ID and API_KEY in your environment or .env
 """
 
 from younit import Client
@@ -37,7 +37,7 @@ with Client() as client:
     try:
         order = client.buy_limit(symbol=SYMBOL, qty=QUANTITY, price=initial_price)
     except (InsufficientFunds, OrderRejected, APIError) as exc:
-        raise SystemExit(f"FAILED: Could not place the initial order: {exc}")
+        raise SystemExit(f"FAILED: Could not place the initial order: {exc}") from None
 
     if order.order_id is None:
         raise SystemExit(

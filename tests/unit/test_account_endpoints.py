@@ -11,17 +11,12 @@ FAKE_BASE_URL = conf.FAKE_BASE_URL
 
 
 def _make_client(respx_mock) -> Client:
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/token").mock(
-        return_value=httpx.Response(200, json=conf.SERVER_TOKEN_RESPONSE)
-    )
-    respx_mock.post(f"{FAKE_BASE_URL}/connect/iframe-access").mock(
+    respx_mock.post(conf.TOKEN_URL).mock(
         return_value=httpx.Response(200, json=conf.CLIENT_TOKEN_RESPONSE)
     )
     return Client(
-        partner_id=conf.FAKE_PARTNER_ID,
-        partner_secret=conf.FAKE_PARTNER_SECRET,
-        trading_uuid=conf.FAKE_TRADING_UUID,
-        identity_url=FAKE_BASE_URL,
+        trading_id=conf.FAKE_TRADING_ID,
+        api_key=conf.FAKE_API_KEY,
         simulation=True,
         lazy_auth=True,
         lazy_symbols=True,
