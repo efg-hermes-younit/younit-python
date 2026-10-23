@@ -649,7 +649,7 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def buy_fund(fund_id: int, qty: int, price: float, is_ipo_fund: bool = False) -> dict:  # type: ignore[return]
+    def buy_fund(fund_id: int, qty: int, price: float, is_ipo_fund: bool = False) -> dict[str, Any]:
         """Place a buy order for a mutual fund.
 
         Funds have no market-order concept — price is always required
@@ -679,7 +679,7 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def sell_fund(fund_id: int, qty: int, price: float) -> dict:  # type: ignore[return]
+    def sell_fund(fund_id: int, qty: int, price: float) -> dict[str, Any]:
         """Place a sell (redemption) order for a mutual fund.
 
         Safety controls apply:
@@ -722,7 +722,7 @@ def _register_write_tools() -> None:
         return {"success": success, "order_id": order_id}
 
     @app.tool()
-    def cancel_fund_order(order_id: int) -> dict:  # type: ignore[return]
+    def cancel_fund_order(order_id: int) -> dict[str, Any]:
         """Cancel an open fund order.
 
         Uses the dedicated fund cancel endpoint — separate from

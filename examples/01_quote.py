@@ -22,7 +22,7 @@ with Client() as client:
 
     print(f"Ticker:       {quote.symbol}")
     print(f"Last price:   {quote.last:.2f} EGP")
-    print(f"Price range:  {quote.min_price:.2f} – {quote.max_price:.2f} EGP")
+    print(f"Price range:  {quote.min_price:.2f} - {quote.max_price:.2f} EGP")
     print(f"Intraday:     {quote.is_intraday}")
     print(f"T+1:          {quote.is_tplus1}")
 

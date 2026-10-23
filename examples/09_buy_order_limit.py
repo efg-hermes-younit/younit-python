@@ -28,7 +28,8 @@ with Client() as client:
 
     print(f"Placing LIMIT BUY: {QUANTITY} x {SYMBOL} @ {limit_price:.2f} EGP")
     print(
-        f"  (Market price: {quote.last:.2f}, allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})"
+        f"  (Market price: {quote.last:.2f}, "
+        f"allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})"
     )
 
     try:

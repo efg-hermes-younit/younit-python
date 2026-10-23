@@ -35,7 +35,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from younit.enums import SECURITY_CLASS_NAMES
 
@@ -46,7 +46,7 @@ _SNAPSHOT_PATH = Path(__file__).parent / "data" / "security_classes_snapshot.jso
 def _load_snapshot() -> dict[str, Any]:
     """Load and cache the committed snapshot once per process."""
     try:
-        return json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+        return cast(dict[str, Any], json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8")))
     except (FileNotFoundError, json.JSONDecodeError):
         return {"captured_at_utc": None, "stocks": {}}
 

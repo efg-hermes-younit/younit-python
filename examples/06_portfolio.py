@@ -37,7 +37,8 @@ with Client() as client:
     print(f"  Total Balance:      {summary.total_balance:.2f}")
     print(f"  Realized P&L:       {summary.realized_profit:+.2f}")
     print(
-        f"  Unrealized P&L:     {summary.unrealized_profit:+.2f}  ({summary.unrealized_profit_pct:+.2f}%)"
+        f"  Unrealized P&L:     {summary.unrealized_profit:+.2f}"
+        f"  ({summary.unrealized_profit_pct:+.2f}%)"
     )
     print(f"  Profit/Loss:        {summary.profit_or_loss:+.2f}")
     print()

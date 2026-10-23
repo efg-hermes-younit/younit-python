@@ -37,7 +37,7 @@ with Client() as client:
     try:
         order = client.buy_limit(symbol=SYMBOL, qty=QUANTITY, price=initial_price)
     except (InsufficientFunds, OrderRejected, APIError) as exc:
-        raise SystemExit(f"FAILED: Could not place the initial order: {exc}")
+        raise SystemExit(f"FAILED: Could not place the initial order: {exc}") from None
 
     if order.order_id is None:
         raise SystemExit(

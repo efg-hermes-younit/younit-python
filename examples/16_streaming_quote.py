@@ -51,7 +51,8 @@ with Client() as client:
         subs.append(sub)
 
     print(
-        f"\nSubscribed to {len(SYMBOLS)} symbols. Streaming for {STREAM_SECONDS}s — press Ctrl+C to stop early.\n"
+        f"\nSubscribed to {len(SYMBOLS)} symbols. Streaming for {STREAM_SECONDS}s"
+        " - press Ctrl+C to stop early.\n"
     )
 
     try:
@@ -64,7 +65,8 @@ with Client() as client:
         update = latest.get(symbol)
         if update is None:
             print(
-                f"{symbol}: No updates received — market may be closed, or check the streaming connection."
+                f"{symbol}: No updates received - market may be closed, "
+                "or check the streaming connection."
             )
             continue
         print(f"Latest snapshot for {symbol}:")

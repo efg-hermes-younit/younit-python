@@ -17,7 +17,6 @@ from younit import Client
 from younit.exceptions import APIError, InvalidOrder, OrderRejected
 from younit.models.funds import Fund
 
-
 with Client() as client:
     funds = client.list_funds()
     print(f"=== Investment Funds ({len(funds)} available) ===")
@@ -39,7 +38,7 @@ with Client() as client:
             is_ipo_fund=fund.is_ipo,
         )
     except (InvalidOrder, OrderRejected, APIError) as exc:
-        raise SystemExit(f"FAILED: Could not place the fund order: {exc}")
+        raise SystemExit(f"FAILED: Could not place the fund order: {exc}") from None
 
     print(f"OK: Order placed — orderId: {order.order_id}  fundId: {order.fund_id}\n")
 

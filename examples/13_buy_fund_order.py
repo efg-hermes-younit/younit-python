@@ -14,7 +14,6 @@ from younit import Client
 from younit.exceptions import APIError, InvalidOrder, OrderRejected
 from younit.models.funds import Fund
 
-
 with Client() as client:
     funds = client.list_funds()
     print(f"=== Investment Funds ({len(funds)} available) ===")
