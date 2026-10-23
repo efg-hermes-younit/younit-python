@@ -165,6 +165,33 @@ class TestIdentityProvider:
         assert provider.handle_401() == conf.FAKE_CLIENT_TOKEN
         assert route.call_count == 1
 
+    def test_get_authorization_raises_when_get_token_produces_no_record(
+        self, monkeypatch, mock_http, settings
+    ):
+        provider = IdentityProvider(settings, mock_http)
+        monkeypatch.setattr(provider, "get_token", lambda: "detached-token")
+
+        with pytest.raises(AuthError, match=r"Authentication failed: no token available\."):
+            provider.get_authorization()
+
+    def test_handle_401_raises_when_refresh_produces_no_token(
+        self, monkeypatch, mock_http, settings
+    ):
+        provider = IdentityProvider(settings, mock_http)
+        monkeypatch.setattr(provider, "_fetch_token", lambda: None)
+
+        with pytest.raises(AuthError, match=r"Authentication failed: no token available\."):
+            provider.handle_401()
+
+    def test_handle_401_authorization_raises_when_refresh_produces_no_record(
+        self, monkeypatch, mock_http, settings
+    ):
+        provider = IdentityProvider(settings, mock_http)
+        monkeypatch.setattr(provider, "handle_401", lambda: "detached-token")
+
+        with pytest.raises(AuthError, match=r"Authentication failed: no token available\."):
+            provider.handle_401_authorization()
+
     def test_refresh_failure_is_not_hidden(self, respx_mock, mock_http, settings):
         respx_mock.post(conf.TOKEN_URL).respond(503, json={"message": "Unavailable"})
         provider = IdentityProvider(settings, mock_http)

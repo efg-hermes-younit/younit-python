@@ -125,21 +125,26 @@ class IdentityProvider:
     def get_authorization(self) -> str:
         """Return the current REST Authorization header value."""
         token = self.get_token()
-        assert self._token is not None
-        return f"{self._token.token_type} {token}"
+        token_record = self._require_token()
+        return f"{token_record.token_type} {token}"
 
     def handle_401(self) -> str:
         """Re-authenticate once after an API 401."""
         _log.warning("got_401_refreshing_token")
         self._fetch_token()
-        assert self._token is not None
-        return self._token.value
+        return self._require_token().value
 
     def handle_401_authorization(self) -> str:
         """Re-authenticate once and return the new REST authorization value."""
         self.handle_401()
-        assert self._token is not None
-        return f"{self._token.token_type} {self._token.value}"
+        token_record = self._require_token()
+        return f"{token_record.token_type} {token_record.value}"
+
+    def _require_token(self) -> _TokenRecord:
+        """Return the current token or raise if authentication produced none."""
+        if self._token is None:
+            raise AuthError("Authentication failed: no token available.")
+        return self._token
 
     def _response_message(self, response: httpx.Response) -> str:
         """Extract a server error message without echoing credential fields."""
