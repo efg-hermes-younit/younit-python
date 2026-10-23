@@ -310,9 +310,7 @@ class TestFundOrderTools:
         buy_fund = _buy_fund_fn()
         result = buy_fund(fund_id=7, qty=1, price=1.0)
 
-        mock_client.buy_fund.assert_called_once_with(
-            fund_id=7, qty=1, price=1.0, is_ipo_fund=False
-        )
+        mock_client.buy_fund.assert_called_once_with(fund_id=7, qty=1, price=1.0, is_ipo_fund=False)
         assert result["fund_id"] == 7
 
     def test_buy_fund_rejects_order_exceeding_safety_cap(self) -> None:

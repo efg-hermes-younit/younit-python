@@ -46,4 +46,3 @@ with Client() as client:
         # The exchange can also reject an order with an HTTP 400, e.g. a
         # compliance suspension on the symbol/account ("Order Suspend Compliance").
         print(f"FAILED: Order request failed ({exc.status_code}): {exc.message}")
-        

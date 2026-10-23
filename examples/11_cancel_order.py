@@ -62,7 +62,9 @@ with Client() as client:
             except APIError as exc:
                 print(f"    (Could not fetch updated status: {exc})")
         else:
-            print(f"FAILED: Order {order.order_id} cancel returned false (may already be executed).")
+            print(
+                f"FAILED: Order {order.order_id} cancel returned false (may already be executed)."
+            )
 
     except NotFound:
         print(f"FAILED: Order {order.order_id} not found.")

@@ -27,7 +27,9 @@ with Client() as client:
     limit_price = round(quote.last * 0.95, 1)  # 1% below market
 
     print(f"Placing LIMIT BUY: {QUANTITY} x {SYMBOL} @ {limit_price:.2f} EGP")
-    print(f"  (Market price: {quote.last:.2f}, allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})")
+    print(
+        f"  (Market price: {quote.last:.2f}, allowed range: {quote.min_price:.2f}-{quote.max_price:.2f})"
+    )
 
     try:
         order = client.buy_limit(
@@ -52,4 +54,3 @@ with Client() as client:
 
     except APIError as exc:
         print(f"FAILED: Order request failed ({exc.status_code}): {exc.message}")
-        

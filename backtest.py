@@ -49,7 +49,12 @@ def fetch_prices(symbol: str, date_from: str, date_to: str) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if df.empty:
         raise SystemExit(f"No data returned for {symbol}")
-    df["date"] = pd.to_datetime(df["date"], utc=True).dt.tz_convert("Africa/Cairo").dt.tz_localize(None).dt.normalize()
+    df["date"] = (
+        pd.to_datetime(df["date"], utc=True)
+        .dt.tz_convert("Africa/Cairo")
+        .dt.tz_localize(None)
+        .dt.normalize()
+    )
     return df
 
 
@@ -82,7 +87,9 @@ class Result:
     sells: pd.DataFrame
 
 
-def simulate(df: pd.DataFrame, fast: int, slow: int, cash: float, comm: float) -> tuple[Result, Result, pd.DataFrame]:
+def simulate(
+    df: pd.DataFrame, fast: int, slow: int, cash: float, comm: float
+) -> tuple[Result, Result, pd.DataFrame]:
     if fast >= slow:
         raise ValueError("fast SMA length must be smaller than slow SMA length")
     df = df.copy()
@@ -211,7 +218,11 @@ def metrics(res: Result, rf: float) -> dict:
     dd = (eq / eq.cummax() - 1).min()
     rf_d = rf / TRADING_DAYS
     excess = rets - rf_d
-    sharpe = excess.mean() / rets.std(ddof=1) * math.sqrt(TRADING_DAYS) if rets.std(ddof=1) > 0 else float("nan")
+    sharpe = (
+        excess.mean() / rets.std(ddof=1) * math.sqrt(TRADING_DAYS)
+        if rets.std(ddof=1) > 0
+        else float("nan")
+    )
     downside = math.sqrt((np.minimum(excess, 0) ** 2).mean())
     sortino = excess.mean() / downside * math.sqrt(TRADING_DAYS) if downside > 0 else float("nan")
     t = res.trades
@@ -230,16 +241,36 @@ def metrics(res: Result, rf: float) -> dict:
     }
 
 
-def plot(df: pd.DataFrame, strat: Result, bh: Result, symbol: str, fast: int, slow: int, path: str) -> None:
+def plot(
+    df: pd.DataFrame, strat: Result, bh: Result, symbol: str, fast: int, slow: int, path: str
+) -> None:
     d = df[df["date"] >= strat.equity.index[0]]
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9), sharex=True, gridspec_kw={"height_ratios": [3, 2]})
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(14, 9), sharex=True, gridspec_kw={"height_ratios": [3, 2]}
+    )
     ax1.plot(d["date"], d["close"], color="black", lw=1, label="Close")
     ax1.plot(d["date"], d["sma_fast"].loc[d.index], color="tab:blue", lw=1, label=f"SMA {fast}")
     ax1.plot(d["date"], d["sma_slow"].loc[d.index], color="tab:orange", lw=1, label=f"SMA {slow}")
     if len(strat.buys):
-        ax1.scatter(strat.buys["date"], strat.buys["px"], marker="^", color="green", s=70, zorder=5, label="Buy")
+        ax1.scatter(
+            strat.buys["date"],
+            strat.buys["px"],
+            marker="^",
+            color="green",
+            s=70,
+            zorder=5,
+            label="Buy",
+        )
     if len(strat.sells):
-        ax1.scatter(strat.sells["date"], strat.sells["px"], marker="v", color="red", s=70, zorder=5, label="Sell")
+        ax1.scatter(
+            strat.sells["date"],
+            strat.sells["px"],
+            marker="v",
+            color="red",
+            s=70,
+            zorder=5,
+            label="Sell",
+        )
     ax1.set_title(f"{symbol} - SMA {fast}/{slow} crossover")
     ax1.set_ylabel("Price (EGP)")
     ax1.legend(loc="upper left")
@@ -293,11 +324,25 @@ def main() -> None:
     plot(df, strat, bh, args.symbol, args.fast, args.slow, args.out)
 
     ms, mb = metrics(strat, args.rf), metrics(bh, args.rf)
-    print(f"\n## Backtest {args.symbol} SMA {args.fast}/{args.slow}, "
-          f"{strat.equity.index[0].date()} to {strat.equity.index[-1].date()}, rf={args.rf:.2%}\n")
+    print(
+        f"\n## Backtest {args.symbol} SMA {args.fast}/{args.slow}, "
+        f"{strat.equity.index[0].date()} to {strat.equity.index[-1].date()}, rf={args.rf:.2%}\n"
+    )
     print("### Profit\n")
-    print(table(["Total return", "CAGR", "Final equity (EGP)", "Trades (round trips)", "Win rate",
-                 "Total commission (EGP)"], ms, mb))
+    print(
+        table(
+            [
+                "Total return",
+                "CAGR",
+                "Final equity (EGP)",
+                "Trades (round trips)",
+                "Win rate",
+                "Total commission (EGP)",
+            ],
+            ms,
+            mb,
+        )
+    )
     print("\n### Risk\n")
     print(table(["Annualised volatility", "Max drawdown", "Sharpe", "Sortino"], ms, mb))
     print(f"\nChart saved to {args.out}")

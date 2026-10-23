@@ -1,8 +1,6 @@
 name: Docs
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -32,10 +30,59 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --extra dev
 
+      # The repo has no docs/ folder yet, so the site is assembled from existing files at build time.
+      - name: Assemble docs
+        run: |
+          mkdir -p docs
+          cp README.md docs/index.md
+          cp tests/docs/mcp.md docs/mcp.md
+          cp CHANGELOG.md docs/changelog.md
+          # Point links to repo files (CONTRIBUTING.md, examples/, ...) at GitHub; docs/x.md links stay on the site.
+          REPO="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}"
+          sed -E -i \
+            -e 's|]\(docs/([^)]+)\)|](@@SITE@@\1)|g' \
+            -e "s|]\((\.\./)*([^)#:@][^):]*)\)|](${REPO}/\2)|g" \
+            -e 's|@@SITE@@||g' \
+            docs/index.md docs/mcp.md
+          cat > docs/reference.md <<'EOF'
+          # API Reference
+
+          ## Client
+
+          ::: younit.client.Client
+
+          ## Exceptions
+
+          ::: younit.exceptions
+
+          ## Models
+
+          ::: younit.models.market_data
+
+          ::: younit.models.account
+
+          ::: younit.models.portfolio
+
+          ::: younit.models.orders
+
+          ::: younit.models.funds
+
+          ::: younit.models.streaming
+          EOF
+          cat > mkdocs.ci.yml <<'EOF'
+          INHERIT: mkdocs.yml
+          nav:
+            - Home: index.md
+            - MCP Server: mcp.md
+            - API Reference: reference.md
+            - Changelog: changelog.md
+          EOF
+
+      # No --strict: README/MCP pages link to repo files (LICENSE, examples/) that aren't part of the site.
       - name: Build mkdocs site
-        run: uv run mkdocs build --strict
+        run: uv run mkdocs build -f mkdocs.ci.yml
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -128,9 +128,7 @@ class TestSettings:
         assert s.company_code == "003"
         assert s.accept_language == "en"
 
-    def test_default_values(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
-    ) -> None:
+    def test_default_values(self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
         monkeypatch.chdir(tmp_path)  # no .env file in tmp_path
         s = Settings(
             trading_id="test-id",
@@ -145,9 +143,7 @@ class TestSettings:
         assert config._BASE_URL == "https://tradingapis.efghermesone.com"
 
     def test_token_url_uses_production_host(self) -> None:
-        assert config._TOKEN_URL == (
-            "https://tradingapis.efghermesone.com/api/public-keys/token"
-        )
+        assert config._TOKEN_URL == ("https://tradingapis.efghermesone.com/api/public-keys/token")
 
     def test_streaming_url_is_a_constant_not_a_settings_field(self) -> None:
         """Streaming URL must not be configurable via Settings/env — no sim/prod split."""

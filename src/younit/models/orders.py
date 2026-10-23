@@ -97,9 +97,7 @@ class FundOrderRequest(BaseModel):
     # UNCONFIRMED extras absent from the confirmed minimal body — kept for
     # backward compatibility, defaulted to None so exclude_none omits them.
     execution_term: ExecutionTerm | None = Field(default=None, alias="executionTerm")
-    order_expire_terms_id: OrderExpireTerm | None = Field(
-        default=None, alias="orderExpireTermsID"
-    )
+    order_expire_terms_id: OrderExpireTerm | None = Field(default=None, alias="orderExpireTermsID")
     order_via: OrderVia | None = Field(default=None, alias="orderVia")
     sub_order_via: SubOrderVia | None = Field(default=None, alias="subOrderVia")
 
@@ -207,7 +205,9 @@ class Order(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     order_id: int | None = Field(
-        default=None, validation_alias=AliasChoices("orderID", "OrderID", "orderId"), alias="OrderID"
+        default=None,
+        validation_alias=AliasChoices("orderID", "OrderID", "orderId"),
+        alias="OrderID",
     )
     stock_id: int | None = Field(
         default=None,
@@ -273,4 +273,3 @@ class OrderHistoryEntry(BaseModel):
     is_rejected: bool | None = Field(default=None, alias="isRejected")
     is_market_price: bool | None = Field(default=None, alias="isMarketPrice")
     show_price: bool | None = Field(default=None, alias="showPrice")
-

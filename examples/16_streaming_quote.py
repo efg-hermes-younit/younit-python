@@ -22,7 +22,7 @@ from younit import Client, SymbolUpdate
 SYMBOLS = ["VLMRA"]
 
 # How many seconds to stream before exiting
-STREAM_SECONDS = 5*2
+STREAM_SECONDS = 5 * 2
 
 with Client() as client:
     latest: dict[str, SymbolUpdate] = {}
@@ -31,6 +31,7 @@ with Client() as client:
         def on_update(update: SymbolUpdate) -> None:
             latest[symbol] = update
             print(f"Received update for {symbol}: {update}")
+
         return on_update
 
     def on_error(exc: Exception) -> None:
@@ -49,7 +50,9 @@ with Client() as client:
         )
         subs.append(sub)
 
-    print(f"\nSubscribed to {len(SYMBOLS)} symbols. Streaming for {STREAM_SECONDS}s — press Ctrl+C to stop early.\n")
+    print(
+        f"\nSubscribed to {len(SYMBOLS)} symbols. Streaming for {STREAM_SECONDS}s — press Ctrl+C to stop early.\n"
+    )
 
     try:
         print("Streaming...")
@@ -60,7 +63,9 @@ with Client() as client:
     for symbol in SYMBOLS:
         update = latest.get(symbol)
         if update is None:
-            print(f"{symbol}: No updates received — market may be closed, or check the streaming connection.")
+            print(
+                f"{symbol}: No updates received — market may be closed, or check the streaming connection."
+            )
             continue
         print(f"Latest snapshot for {symbol}:")
         print(f"  last      = {update.last}")

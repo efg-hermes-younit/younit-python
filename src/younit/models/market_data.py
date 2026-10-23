@@ -182,7 +182,7 @@ class HistoricalCandle(BaseModel):
             return 0.0
 
     @classmethod
-    def print_table(cls, candles: "list[HistoricalCandle]") -> None:
+    def print_table(cls, candles: list[HistoricalCandle]) -> None:
         """Print a list of candles as a formatted, aligned table.
 
         Convenience for examples/CLI use — not used internally by the SDK.

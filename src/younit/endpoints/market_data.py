@@ -61,7 +61,7 @@ def list_market_stocks(
     if isinstance(data, dict) and "data" in data:
         data = data["data"]
     if isinstance(data, list):
-        return data  # type: ignore[return-value]
+        return data
     return []
 
 
@@ -292,8 +292,14 @@ def get_historical_prices(
     if date_to is not None:
         params["DateTo"] = date_to
 
-    _log.debug("get_historical_prices", url=url, security_id=security_id, period=period,
-               date_from=date_from, date_to=date_to)
+    _log.debug(
+        "get_historical_prices",
+        url=url,
+        security_id=security_id,
+        period=period,
+        date_from=date_from,
+        date_to=date_to,
+    )
     response = http.get(url, headers=headers, params=params)
     raise_for_status(response)
 
@@ -350,7 +356,7 @@ def get_stock_list_types(
     if isinstance(data, dict) and "data" in data:
         data = data["data"]
     if isinstance(data, list):
-        return data  # type: ignore[return-value]
+        return data
     return []
 
 
@@ -387,7 +393,10 @@ def get_stocks_by_list_type(
     headers = {**default_headers, "Authorization": f"Bearer {token}"}
 
     _log.debug(
-        "get_stocks_by_list_type", url=url, list_type=list_type, list_id=list_id,
+        "get_stocks_by_list_type",
+        url=url,
+        list_type=list_type,
+        list_id=list_id,
         market_id=market_id,
     )
     response = http.get(url, headers=headers)

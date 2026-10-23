@@ -60,10 +60,10 @@ ai-demo = [
 younit-mcp = "younit.mcp_server.server:main"
 
 [project.urls]
-Homepage = "https://github.com/efg-hermes-younit/younit-python"
-Repository = "https://github.com/efg-hermes-younit/younit-python"
-Issues = "https://github.com/efg-hermes-younit/younit-python/issues"
-Changelog = "https://github.com/efg-hermes-younit/younit-python/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/efg-hermes-younit/younit-python-sdk"
+Repository = "https://github.com/efg-hermes-younit/younit-python-sdk"
+Issues = "https://github.com/efg-hermes-younit/younit-python-sdk/issues"
+Changelog = "https://github.com/efg-hermes-younit/younit-python-sdk/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "src/younit/_version.py"
@@ -115,11 +115,17 @@ warn_return_any = true
 warn_unused_configs = true
 show_error_codes = true
 pretty = true
+plugins = ["pydantic.mypy"]
 exclude = ["tests/", "examples/", "scripts/", "docs/"]
 
 [[tool.mypy.overrides]]
 module = ["structlog.*", "mcp.*"]
 ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = false
+init_typed = true
+warn_required_dynamic_aliases = true
 
 # ---------------------------------------------------------------------------
 # Pytest

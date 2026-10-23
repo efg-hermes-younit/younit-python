@@ -27,7 +27,9 @@ with Client() as client:
     quantity = 1
     price = fund.nav
 
-    print(f"Placing fund BUY: [{fund.fund_id}] {fund.name} x{quantity} @ {price:.4f} {fund.currency}")
+    print(
+        f"Placing fund BUY: [{fund.fund_id}] {fund.name} x{quantity} @ {price:.4f} {fund.currency}"
+    )
 
     try:
         order = client.buy_fund(

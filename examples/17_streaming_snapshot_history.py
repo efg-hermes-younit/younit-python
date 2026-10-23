@@ -52,8 +52,10 @@ with Client() as client:
     print(f"Received {updates.qsize()} update(s). Processing in order:\n")
 
     if updates.empty():
-        print(f"No updates received for {SYMBOL} — market may be closed, "
-              "or check the streaming connection.")
+        print(
+            f"No updates received for {SYMBOL} — market may be closed, "
+            "or check the streaming connection."
+        )
     else:
         count = 0
         while not updates.empty():

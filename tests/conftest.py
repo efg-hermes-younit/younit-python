@@ -53,7 +53,5 @@ def mock_http() -> httpx.Client:
 @pytest.fixture
 def auth_routes(respx_mock: respx.MockRouter) -> respx.MockRouter:
     """Pre-configure auth endpoints on the respx mock router."""
-    respx_mock.post(TOKEN_URL).mock(
-        return_value=httpx.Response(200, json=CLIENT_TOKEN_RESPONSE)
-    )
+    respx_mock.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=CLIENT_TOKEN_RESPONSE))
     return respx_mock

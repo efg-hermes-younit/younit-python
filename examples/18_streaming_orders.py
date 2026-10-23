@@ -25,11 +25,11 @@ import time
 from younit import Client, OrderUpdate
 
 SYMBOL = "ABUK"
-STREAM_SECONDS = 60*10  # watch for this long after placing
+STREAM_SECONDS = 60 * 10  # watch for this long after placing
 
 
 def on_order_update(update: OrderUpdate) -> None:
-    print('Subscriped to order update:...')
+    print("Subscriped to order update:...")
     price = f"{update.price:.2f} EGP" if update.price else "MARKET"
     print(
         f"  [{update.command:>6}] order={update.order_number}  "

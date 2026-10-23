@@ -19,7 +19,7 @@ with Client() as client:
     funds = client.list_funds()
     print(f"=== Investment Funds ({len(funds)} available) ===")
     Fund.print_table(funds)  # show first 5
-    
+
     fund = funds[3]
     quantity = 2
     price = fund.nav
@@ -43,4 +43,3 @@ with Client() as client:
         print(f"FAILED: Order rejected: {exc}")
     except APIError as exc:
         print(f"FAILED: Order request failed ({exc.status_code}): {exc.message}")
-

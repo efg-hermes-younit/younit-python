@@ -33,7 +33,7 @@ with Client() as client:
     quote = client.quote(SYMBOL)
     # limit_price = round(quote.last*0.95, 1)  # 1% below market
     # limit_price = round(quote.min_price*1.01, 1)  # 1% below market
-    limit_price = round(quote.max_price*0.98, 1)  # 1% below market
+    limit_price = round(quote.max_price * 0.98, 1)  # 1% below market
 
     try:
         # order = client.sell_market(

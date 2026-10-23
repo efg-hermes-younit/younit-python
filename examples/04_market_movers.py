@@ -31,7 +31,9 @@ with Client() as client:
     # Trending stocks
     print("=== Trending Stocks ===")
     for stock in client.trending_stocks()[:5]:
-        print(f"  [{stock.stock_id}] {stock.symbol:<8} {stock.short_name:<22}  reuters={stock.reuters_code}  ccy={stock.currency}")
+        print(
+            f"  [{stock.stock_id}] {stock.symbol:<8} {stock.short_name:<22}  reuters={stock.reuters_code}  ccy={stock.currency}"
+        )
 
     print()
 

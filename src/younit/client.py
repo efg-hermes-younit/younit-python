@@ -96,6 +96,7 @@ _MARKET_STATUS_MAP = {"2": "open", "3": "closed", "20": "trade at last"}
 def _parse_next_working_day(message: str) -> datetime | None:
     """Extract the next working day datetime from an overnight-order rejection message."""
     import re
+
     match = re.search(r"next working day\s+([\d/]+\s+[\d:]+\s+[APM]+)", message, re.IGNORECASE)
     if not match:
         return None
@@ -333,7 +334,7 @@ class Client:
             if bp.profile_id is not None:
                 self._cached_profile_id = bp.profile_id
         except Exception:
-            pass
+            _log.warning("profile_id_fetch_failed", exc_info=True)
         return self._cached_profile_id
 
     # ------------------------------------------------------------------
@@ -1076,6 +1077,7 @@ class Client:
                 stock.symbol, on_update=_make_callback(stock.symbol, stock.name)
             )
             for stock in stocks
+            if stock.symbol
         ]
 
         all_arrived.wait(timeout=timeout)
@@ -1089,7 +1091,6 @@ class Client:
     # ------------------------------------------------------------------
     # Public: trading
     # ------------------------------------------------------------------
-
 
     def buy(
         self,
@@ -1445,6 +1446,7 @@ class Client:
         profile_id = bp.profile_id
         if profile_id is None:
             from younit.exceptions import InvalidOrder
+
             raise InvalidOrder(
                 f"Buying power response for {symbol!r} did not include a profileId. "
                 "The stock may not be available for trading on this profile."
@@ -1505,14 +1507,14 @@ class Client:
                 )
 
         request = OrderRequest(
-            profileID=profile_id,
-            stockID=stock_id,
-            operationType=operation,
+            profile_id=profile_id,
+            stock_id=stock_id,
+            operation_type=operation,
             quantity=qty,
             price=order_price,
-            orderExpireTermsID=expire_term,
-            expireDate=expire_date,
-            isMarketPrice=is_market,
+            order_expire_terms_id=expire_term,
+            expire_date=expire_date,
+            is_market_price=is_market,
         )
 
         # Step 3: Place the order (never retried).
@@ -1535,18 +1537,18 @@ class Client:
             # Outside market hours: auto-retry as GTD with the exchange-supplied date.
             _log.info("order_retrying_as_gtd", next_working_day=str(next_day))
             request = OrderRequest(
-                profileID=profile_id,
-                stockID=stock_id,
-                operationType=operation,
+                profile_id=profile_id,
+                stock_id=stock_id,
+                operation_type=operation,
                 quantity=qty,
                 price=order_price,
                 # Market orders keep UNKNOWN_2 even on retry — GTD is a
                 # limit-order concept only (see comment above).
-                orderExpireTermsID=OrderExpireTerm.UNKNOWN_2
+                order_expire_terms_id=OrderExpireTerm.UNKNOWN_2
                 if is_market
                 else OrderExpireTerm.GOOD_TILL_DATE,
-                expireDate=next_day,
-                isMarketPrice=is_market,
+                expire_date=next_day,
+                is_market_price=is_market,
             )
             order_id = _orders.place_order(
                 self._http,
@@ -1591,9 +1593,7 @@ class Client:
         try:
             orders = self.list_orders(profile_id=profile_id)
         except APIError as exc:
-            _log.warning(
-                "order_confirmation_list_orders_failed", order_id=order_id, error=str(exc)
-            )
+            _log.warning("order_confirmation_list_orders_failed", order_id=order_id, error=str(exc))
             return stub
 
         for row in orders:
@@ -1735,7 +1735,6 @@ class Client:
             order_id=order_id,
             profile_id=profile_id,
         )
-
 
     def amend_order(
         self,
@@ -2181,16 +2180,16 @@ class Client:
         expire_term = OrderExpireTerm.GOOD_TILL_DATE if expire == "gtd" else None
 
         request = FundOrderRequest(
-            profileId=profile_id,
-            fundId=fund_id,
-            operationType=operation,
+            profile_id=profile_id,
+            fund_id=fund_id,
+            operation_type=operation,
             quantity=qty,
             price=price,
-            isIPOFund=is_ipo_fund,
-            executionTerm=execution_term,
-            orderExpireTermsID=expire_term,
-            orderVia=order_via,
-            subOrderVia=sub_order_via,
+            is_ipo_fund=is_ipo_fund,
+            execution_term=execution_term,
+            order_expire_terms_id=expire_term,
+            order_via=order_via,
+            sub_order_via=sub_order_via,
         )
 
         order_id = _orders.place_fund_order(

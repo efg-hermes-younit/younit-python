@@ -43,9 +43,8 @@ with Client() as client:
         closes = [c.close for c in candles if c.close]
         if closes:
             print(f"\n  Period high:  {max(c.high for c in candles):.2f} EGP")
-            print(f"  Period low:   {min(c.low  for c in candles):.2f} EGP")
+            print(f"  Period low:   {min(c.low for c in candles):.2f} EGP")
             print(f"  First close:  {closes[0]:.2f} EGP")
             print(f"  Last close:   {closes[-1]:.2f} EGP")
             change_pct = (closes[-1] - closes[0]) / closes[0] * 100 if closes[0] else 0
             print(f"  Period return: {change_pct:+.2f}%")
-

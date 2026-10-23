@@ -56,7 +56,10 @@ RAW_POSITIONS_RESPONSE = {
                 "frozenQty": 0,
                 "averageCost": 38.269,
                 "shortNameE": "Eastern Company",
-                "shortNameA": "\u0627\u0644\u0634\u0631\u0642\u064a\u0629 \u0644\u0644\u062f\u062e\u0627\u0646",
+                "shortNameA": (
+                    "\u0627\u0644\u0634\u0631\u0642\u064a\u0629 "
+                    "\u0644\u0644\u062f\u062e\u0627\u0646"
+                ),
                 "marketPrice": 35.07,
                 "realizedProfit": 0,
                 "unRealizedProfit": -3.199,
@@ -77,7 +80,10 @@ RAW_POSITIONS_RESPONSE = {
                 "frozenQty": 0,
                 "averageCost": 82.167,
                 "shortNameE": "AboKir Fertilize",
-                "shortNameA": "\u0627\u0628\u0648\u0642\u064a\u0631 \u0644\u0644\u0627\u0633\u0645\u062f\u0629",
+                "shortNameA": (
+                    "\u0627\u0628\u0648\u0642\u064a\u0631 "
+                    "\u0644\u0644\u0627\u0633\u0645\u062f\u0629"
+                ),
                 "marketPrice": 79.4,
                 "realizedProfit": 0,
                 "unRealizedProfit": -2.767,
@@ -98,7 +104,10 @@ RAW_POSITIONS_RESPONSE = {
                 "frozenQty": 0,
                 "averageCost": 141.753,
                 "shortNameE": "Commercial Bank",
-                "shortNameA": "\u0627\u0644\u0628\u0646\u0643 \u0627\u0644\u062a\u062c\u0627\u0631\u064a \u0627\u0644\u062f\u0648\u0644\u064a",
+                "shortNameA": (
+                    "\u0627\u0644\u0628\u0646\u0643 \u0627\u0644\u062a\u062c\u0627\u0631\u064a "
+                    "\u0627\u0644\u062f\u0648\u0644\u064a"
+                ),
                 "marketPrice": 138.1,
                 "realizedProfit": 0,
                 "unRealizedProfit": -3.653,
@@ -119,7 +128,10 @@ RAW_POSITIONS_RESPONSE = {
                 "frozenQty": 0,
                 "averageCost": 21.831,
                 "shortNameE": "Fawry for Banks Tec",
-                "shortNameA": "\u0641\u0648\u0631\u064a \u0644\u062a\u0643\u0646\u0648\u0644\u0648\u062c\u064a\u0627 \u0627\u0644\u0628\u0646\u0648\u0643",
+                "shortNameA": (
+                    "\u0641\u0648\u0631\u064a \u0644\u062a\u0643\u0646\u0648\u0644\u0648\u062c"
+                    "\u064a\u0627 \u0627\u0644\u0628\u0646\u0648\u0643"
+                ),
                 "marketPrice": 18.99,
                 "realizedProfit": 0,
                 "unRealizedProfit": -2.841,
@@ -153,7 +165,10 @@ RAW_PORTFOLIO_SECURITIES_RESPONSE = {
                 "frozenQty": 0,
                 "averageCost": 82.167,
                 "shortNameE": "AboKir Fertilize",
-                "shortNameA": "\u0627\u0628\u0648\u0642\u064a\u0631 \u0644\u0644\u0627\u0633\u0645\u062f\u0629",
+                "shortNameA": (
+                    "\u0627\u0628\u0648\u0642\u064a\u0631 "
+                    "\u0644\u0644\u0627\u0633\u0645\u062f\u0629"
+                ),
                 "marketPrice": 92.39,
                 "realizedProfit": 0,
                 "unRealizedProfit": 10.223,
@@ -197,8 +212,16 @@ RAW_PORTFOLIO_SECURITIES_RESPONSE = {
                 "currencyShortName": "EGP",
             },
         ],
-        "stocks": {"unRealizedProfit": 10.223, "investmentValue": 82.167, "unRealizedProfitPercentage": 12.44},
-        "funds": {"unRealizedProfit": 15.0, "investmentValue": 1000.0, "unRealizedProfitPercentage": 1.5},
+        "stocks": {
+            "unRealizedProfit": 10.223,
+            "investmentValue": 82.167,
+            "unRealizedProfitPercentage": 12.44,
+        },
+        "funds": {
+            "unRealizedProfit": 15.0,
+            "investmentValue": 1000.0,
+            "unRealizedProfitPercentage": 1.5,
+        },
     },
 }
 
@@ -506,7 +529,10 @@ class TestFundPositions:
         respx_mock.get(f"{FAKE_BASE_URL}/api/portfolio/GetPortfolioSecurities").mock(
             return_value=httpx.Response(
                 200,
-                json={"messages": None, "data": {"securityPositions": None, "stocks": None, "funds": None}},
+                json={
+                    "messages": None,
+                    "data": {"securityPositions": None, "stocks": None, "funds": None},
+                },
             )
         )
 
@@ -549,15 +575,18 @@ def _mock_same_day_list(respx_mock, market_id: int = 1, member_stock_ids: set[in
             },
         )
     )
-    respx_mock.get(
-        f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/{market_id}"
-    ).mock(
+    respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stocks-by-list-type/2/2/{market_id}").mock(
         return_value=httpx.Response(
             200,
             json={
                 "messages": None,
                 "data": [
-                    {"id": sid, "reuterCode": f"S{sid}.CA", "name": f"Stock {sid}", "marketId": market_id}
+                    {
+                        "id": sid,
+                        "reuterCode": f"S{sid}.CA",
+                        "name": f"Stock {sid}",
+                        "marketId": market_id,
+                    }
                     for sid in member_stock_ids
                 ],
             },
@@ -808,7 +837,9 @@ class TestListByClassAndConvenienceFilters:
             client.close()
 
     def test_list_same_day_eligible(self, respx_mock, monkeypatch):
-        client = self._make_filterable_client(respx_mock, monkeypatch, same_day_stock_ids={101, 103})
+        client = self._make_filterable_client(
+            respx_mock, monkeypatch, same_day_stock_ids={101, 103}
+        )
 
         try:
             result = client.list_same_day_eligible()
@@ -1439,9 +1470,7 @@ class TestTradingConvenienceWrappers:
         result = client.buy_market("COMI", 5, confirm=True, confirm_timeout=1.0)
 
         assert result == "order"
-        buy_spy.assert_called_once_with(
-            "COMI", 5, limit=None, confirm=True, confirm_timeout=1.0
-        )
+        buy_spy.assert_called_once_with("COMI", 5, limit=None, confirm=True, confirm_timeout=1.0)
 
     def test_buy_limit_calls_buy_correctly(self):
         client = Client.__new__(Client)
@@ -1637,7 +1666,6 @@ class TestPlaceFundOrder:
             client.close()
 
 
-
 class TestAmendFundOrder:
     def test_sends_only_quantity_and_price_no_profile_id(self, respx_mock):
         client = _make_client(respx_mock)
@@ -1670,9 +1698,9 @@ class TestAmendFundOrder:
 class TestCancelFundOrder:
     def test_calls_dedicated_fund_cancel_endpoint_no_body(self, respx_mock):
         client = _make_client(respx_mock)
-        cancel_route = respx_mock.post(
-            f"{FAKE_BASE_URL}/api/v1/orders/fund/54262884/cancel"
-        ).mock(return_value=httpx.Response(200, json={"data": True, "messages": []}))
+        cancel_route = respx_mock.post(f"{FAKE_BASE_URL}/api/v1/orders/fund/54262884/cancel").mock(
+            return_value=httpx.Response(200, json={"data": True, "messages": []})
+        )
 
         try:
             result = client.cancel_fund_order(54262884)

@@ -28,6 +28,7 @@ import argparse
 import sys
 import threading
 from dataclasses import asdict
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -38,6 +39,7 @@ from younit.mcp_server.safety import (
     check_daily_limit,
     check_order_value,
 )
+from younit.models.streaming import OrderUpdate, SymbolUpdate
 
 # ---------------------------------------------------------------------------
 # Server and state initialisation
@@ -71,7 +73,7 @@ def _get_safety() -> SafetySettings:
 
 
 @app.tool()
-def quote(symbol: str) -> dict:  # type: ignore[return]
+def quote(symbol: str) -> dict[str, Any]:
     """Get the current price snapshot for an EGX-listed stock.
 
     Use this to get the current market price, allowed order price range
@@ -97,7 +99,7 @@ def quote(symbol: str) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:  # type: ignore[return]
+def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:
     """Check whether the EGX market is currently open or closed, live.
 
     Uses the live MarketStatistics stream — there is no REST endpoint for
@@ -118,7 +120,7 @@ def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:  # t
 
 
 @app.tool()
-def account_info() -> dict:  # type: ignore[return]
+def account_info() -> dict[str, Any]:
     """Get the authenticated client's account information and profile list.
 
     Use this to retrieve the client's profile IDs, name, and sub-account details.
@@ -131,7 +133,7 @@ def account_info() -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def portfolio() -> dict:  # type: ignore[return]
+def portfolio() -> dict[str, Any]:
     """Get the client's portfolio summary: cash, margin, and buying power.
 
     Shows available cash balances and margin details in EGP.
@@ -145,7 +147,7 @@ def portfolio() -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def positions() -> list:  # type: ignore[return]
+def positions() -> list[dict[str, Any]]:
     """Get the client's current open stock positions on EGX.
 
     Shows all stocks currently held, with quantity, average cost, current
@@ -160,7 +162,7 @@ def positions() -> list:  # type: ignore[return]
 
 
 @app.tool()
-def position(symbol: str) -> dict | None:  # type: ignore[return]
+def position(symbol: str) -> dict[str, Any] | None:
     """Get the client's position for a specific EGX stock.
 
     Args:
@@ -176,7 +178,7 @@ def position(symbol: str) -> dict | None:  # type: ignore[return]
 
 
 @app.tool()
-def positions_split(market_id: int = 1) -> dict:  # type: ignore[return]
+def positions_split(market_id: int = 1) -> dict[str, Any]:
     """Get the client's positions, reliably split into stocks vs funds.
 
     Works around a confirmed backend bug where positions() mixes stock and
@@ -203,7 +205,7 @@ def positions_split(market_id: int = 1) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def buying_power(symbol: str) -> dict:  # type: ignore[return]
+def buying_power(symbol: str) -> dict[str, Any]:
     """Get buying power and profile information for a specific EGX stock.
 
     Returns the available buying power in EGP and the profile_id required
@@ -221,7 +223,7 @@ def buying_power(symbol: str) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def top_movers(market_id: int = 1, limit: int = 50) -> list:  # type: ignore[return]
+def top_movers(market_id: int = 1, limit: int = 50) -> list[dict[str, Any]]:
     """Get today's top gaining and losing stocks on EGX, computed live.
 
     Returns EVERY actively-tradeable stock on the market, sorted by percentage
@@ -253,7 +255,7 @@ def top_movers(market_id: int = 1, limit: int = 50) -> list:  # type: ignore[ret
 
 
 @app.tool()
-def trending_stocks(market_id: int = 1) -> list:  # type: ignore[return]
+def trending_stocks(market_id: int = 1) -> list[dict[str, Any]]:
     """Get the trending stocks on EGX right now.
 
     Returns stocks with high recent activity or social/algorithmic momentum.
@@ -271,7 +273,7 @@ def trending_stocks(market_id: int = 1) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def search_stocks(query: str) -> list:  # type: ignore[return]
+def search_stocks(query: str) -> list[dict[str, Any]]:
     """Search for EGX stocks by ticker symbol substring.
 
     Local search over the cached symbol map — no API call, instant results.
@@ -292,7 +294,7 @@ def search_stocks(query: str) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def get_order(order_id: int) -> dict:  # type: ignore[return]
+def get_order(order_id: int) -> dict[str, Any]:
     """Get the current status of an order.
 
     Use this to check whether a previously placed order was accepted,
@@ -310,7 +312,7 @@ def get_order(order_id: int) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def funds(market_id: int = 1) -> list:  # type: ignore[return]
+def funds(market_id: int = 1) -> list[dict[str, Any]]:
     """List all available mutual funds on EGX.
 
     Returns information about EFG-listed mutual funds including NAV per unit
@@ -327,7 +329,7 @@ def funds(market_id: int = 1) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def fund_performance(fund_id: int, market_id: int = 1, filter_type: int = 3) -> dict:  # type: ignore[return]
+def fund_performance(fund_id: int, market_id: int = 1, filter_type: int = 3) -> dict[str, Any]:
     """Get performance chart data for a mutual fund.
 
     Args:
@@ -347,7 +349,7 @@ def fund_performance(fund_id: int, market_id: int = 1, filter_type: int = 3) -> 
 
 
 @app.tool()
-def fund_positions(market_id: int = 1) -> list:  # type: ignore[return]
+def fund_positions(market_id: int = 1) -> list[dict[str, Any]]:
     """Get the client's current open fund positions.
 
     WARNING: confirmed live to return an empty list for this account even
@@ -367,7 +369,7 @@ def fund_positions(market_id: int = 1) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def stock_info(symbol: str) -> dict:  # type: ignore[return]
+def stock_info(symbol: str) -> dict[str, Any]:
     """Get detailed trading information for a specific EGX stock.
 
     Returns the same data as quote() — current price, allowed limit order
@@ -385,7 +387,7 @@ def stock_info(symbol: str) -> dict:  # type: ignore[return]
 
 
 @app.tool()
-def list_stocks(market_id: int = 1) -> list:  # type: ignore[return]
+def list_stocks(market_id: int = 1) -> list[dict[str, Any]]:
     """List all stocks available on EGX.
 
     Returns the complete set of listed stocks with their ticker symbols and
@@ -407,7 +409,7 @@ def list_stocks(market_id: int = 1) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def list_by_class(class_names: list[str]) -> list:  # type: ignore[return]
+def list_by_class(class_names: list[str]) -> list[dict[str, Any]]:
     """List EGX stocks filtered by one or more security classifications.
 
     Args:
@@ -426,7 +428,7 @@ def list_by_class(class_names: list[str]) -> list:  # type: ignore[return]
 
 
 @app.tool()
-def list_same_day_eligible() -> list:  # type: ignore[return]
+def list_same_day_eligible() -> list[dict[str, Any]]:
     """List all EGX stocks eligible for same-day (T0) trading.
 
     Thin convenience wrapper equivalent to filtering list_stocks() by
@@ -441,7 +443,7 @@ def list_same_day_eligible() -> list:  # type: ignore[return]
 
 
 @app.tool()
-def list_otc() -> list:  # type: ignore[return]
+def list_otc() -> list[dict[str, Any]]:
     """List all OTC-classified EGX stocks.
 
     Equivalent to list_by_class(["OTC"]). OTC stocks are never eligible for
@@ -455,7 +457,12 @@ def list_otc() -> list:  # type: ignore[return]
 
 
 @app.tool()
-def historical_prices(symbol: str, period: str = "Month", date_from: str | None = None, date_to: str | None = None) -> list:  # type: ignore[return]
+def historical_prices(
+    symbol: str,
+    period: str = "Month",
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[dict[str, Any]]:
     """Get historical OHLCV (open/high/low/close/volume) price data for an EGX stock.
 
     Useful for charting, trend analysis, and building price context before
@@ -480,12 +487,14 @@ def historical_prices(symbol: str, period: str = "Month", date_from: str | None 
         - close: Closing price in EGP
         - volume: Number of shares traded in this period
     """
-    candles = _get_client().historical_prices(symbol=symbol, period=period, date_from=date_from, date_to=date_to)
+    candles = _get_client().historical_prices(
+        symbol=symbol, period=period, date_from=date_from, date_to=date_to
+    )
     return [c.model_dump(mode="json") for c in candles]
 
 
 @app.tool()
-def streaming_quote(symbol: str, timeout_seconds: float = 5.0) -> dict | None:  # type: ignore[return]
+def streaming_quote(symbol: str, timeout_seconds: float = 5.0) -> dict[str, Any] | None:
     """Get a single real-time price snapshot for an EGX stock via the live feed.
 
     Connects to the Lightstreamer streaming feed, waits for the first live
@@ -502,11 +511,11 @@ def streaming_quote(symbol: str, timeout_seconds: float = 5.0) -> dict | None:  
     """
     client = _get_client()
     event: threading.Event = threading.Event()
-    result: list[dict] = []
+    result: list[dict[str, Any]] = []
 
-    def _on_update(update: object) -> None:
+    def _on_update(update: SymbolUpdate) -> None:
         if not result:
-            result.append(update.model_dump())  # type: ignore[union-attr]
+            result.append({slot: getattr(update, slot) for slot in update.__slots__})
             event.set()
 
     sub = client.streaming.subscribe_quote(symbol, on_update=_on_update)
@@ -516,7 +525,7 @@ def streaming_quote(symbol: str, timeout_seconds: float = 5.0) -> dict | None:  
 
 
 @app.tool()
-def streaming_orders(timeout_seconds: float = 5.0) -> dict | None:  # type: ignore[return]
+def streaming_orders(timeout_seconds: float = 5.0) -> dict[str, Any] | None:
     """Get a single real-time order status snapshot from the live order feed.
 
     Subscribes to the ActiveOrders Lightstreamer stream and returns the first
@@ -533,11 +542,11 @@ def streaming_orders(timeout_seconds: float = 5.0) -> dict | None:  # type: igno
     """
     client = _get_client()
     event: threading.Event = threading.Event()
-    result: list[dict] = []
+    result: list[dict[str, Any]] = []
 
-    def _on_update(update: object) -> None:
+    def _on_update(update: OrderUpdate) -> None:
         if not result:
-            result.append(update.model_dump())  # type: ignore[union-attr]
+            result.append({slot: getattr(update, slot) for slot in update.__slots__})
             event.set()
 
     sub = client.streaming.subscribe_orders(on_update=_on_update)
@@ -559,7 +568,7 @@ def _register_write_tools() -> None:
     """
 
     @app.tool()
-    def buy(symbol: str, qty: int, limit: float | None = None) -> dict:  # type: ignore[return]
+    def buy(symbol: str, qty: int, limit: float | None = None) -> dict[str, Any]:
         """Place a buy order for an EGX-listed stock.
 
         Implements the full 3-call order placement flow automatically:
@@ -598,7 +607,9 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def sell(symbol: str, qty: int, limit: float | None = None, settlement: str = "t2") -> dict:  # type: ignore[return]
+    def sell(
+        symbol: str, qty: int, limit: float | None = None, settlement: str = "t2"
+    ) -> dict[str, Any]:
         """Place a sell order for an EGX-listed stock.
 
         Implements the full 3-call order placement flow automatically.
@@ -694,7 +705,7 @@ def _register_write_tools() -> None:
         return result.model_dump(mode="json")
 
     @app.tool()
-    def cancel_order(order_id: int) -> dict:  # type: ignore[return]
+    def cancel_order(order_id: int) -> dict[str, Any]:
         """Cancel an open order.
 
         Only open (pending/active) orders can be cancelled. Already-filled
@@ -732,7 +743,7 @@ def _register_write_tools() -> None:
         order_id: int,
         qty: int | None = None,
         price: float | None = None,
-    ) -> dict:  # type: ignore[return]
+    ) -> dict[str, Any]:
         """Amend an open order (change quantity and/or limit price).
 
         At least one of qty or price must be provided.

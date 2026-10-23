@@ -238,9 +238,7 @@ class TestConnection:
         self, token_getter, symbol_resolver
     ):
         """Sim streaming is discontinued — simulation must not change the streaming host."""
-        real_settings = Settings(
-            trading_id="trading-123", api_key="test-key", simulation=False
-        )
+        real_settings = Settings(trading_id="trading-123", api_key="test-key", simulation=False)
         sc = StreamingClient(
             settings=real_settings, token_getter=token_getter, symbol_resolver=symbol_resolver
         )
@@ -689,3 +687,161 @@ class TestParsers:
             ("ORDER_FIELDS", ORDER_FIELDS),
         ]:
             assert len(fields) == len(set(fields)), f"Duplicate in {name}"
+
+
+# ---------------------------------------------------------------------------
+# Tests — error-handling branches not exercised by the happy-path suite above
+# ---------------------------------------------------------------------------
+
+
+class TestConnectionErrorBranches:
+    def test_disconnect_swallows_underlying_exception(self, streaming_client):
+        class BrokenDisconnectClient(FakeLSClient):
+            def disconnect(self) -> None:
+                raise RuntimeError("disconnect boom")
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "lightstreamer": MagicMock(),
+                "lightstreamer.client": _fake_ls_module(fake_client_cls=BrokenDisconnectClient),
+            },
+        ):
+            streaming_client.connect()
+            streaming_client.disconnect()  # should not raise
+        assert streaming_client.is_connected() is False
+
+    def test_update_token_swallows_underlying_exception(self, streaming_client):
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            streaming_client.connect()
+            streaming_client._ls_client.connectionDetails.setPassword.side_effect = RuntimeError(
+                "boom"
+            )
+            streaming_client.update_token("new-token")  # should not raise
+
+    def test_on_server_error_unblocks_connect_waiter(self, streaming_client):
+        class ErroringLSClient(FakeLSClient):
+            def connect(self) -> None:
+                for listener in self._listeners:
+                    listener.onServerError(17, "bad credentials")
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "lightstreamer": MagicMock(),
+                "lightstreamer.client": _fake_ls_module(fake_client_cls=ErroringLSClient),
+            },
+        ):
+            streaming_client.connect()
+        assert streaming_client.is_connected() is False
+
+
+class TestSubscribeOrdersProfileIdGetter:
+    def test_uses_profile_id_getter_when_available(self, settings, token_getter, symbol_resolver):
+        sc = StreamingClient(
+            settings=settings,
+            token_getter=token_getter,
+            symbol_resolver=symbol_resolver,
+            profile_id_getter=MagicMock(return_value=55555),
+        )
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            sub = sc.subscribe_orders(on_update=lambda _: None)
+        assert sub.item == "po55555"
+
+    def test_falls_back_to_trading_id_when_getter_returns_none(
+        self, settings, token_getter, symbol_resolver
+    ):
+        sc = StreamingClient(
+            settings=settings,
+            token_getter=token_getter,
+            symbol_resolver=symbol_resolver,
+            profile_id_getter=MagicMock(return_value=None),
+        )
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            sub = sc.subscribe_orders(on_update=lambda _: None)
+        assert sub.item == f"po{settings.trading_id}"
+
+
+class TestUnsubscribeErrorBranch:
+    def test_unsubscribe_wraps_exception_in_streaming_error(self, streaming_client):
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            sub = streaming_client.subscribe_index(1, on_update=lambda _: None)
+            streaming_client._ls_client.unsubscribe = MagicMock(
+                side_effect=RuntimeError("unsub boom")
+            )
+            with pytest.raises(StreamingError, match="Failed to unsubscribe"):
+                streaming_client.unsubscribe(sub)
+
+
+class TestSubscribeRawErrorBranches:
+    def test_subscription_failed_from_make_ls_subscription_is_not_rewrapped(self, streaming_client):
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            streaming_client.connect()
+            streaming_client._make_ls_subscription = MagicMock(
+                side_effect=SubscriptionFailed("nope", code=1, error_message="nope")
+            )
+            with pytest.raises(SubscriptionFailed, match="nope"):
+                streaming_client.subscribe_index(1, on_update=lambda _: None)
+
+    def test_generic_exception_is_wrapped_in_subscription_failed(self, streaming_client):
+        with patch.dict(
+            "sys.modules",
+            {"lightstreamer": MagicMock(), "lightstreamer.client": _fake_ls_module()},
+        ):
+            streaming_client.connect()
+            streaming_client._make_ls_subscription = MagicMock(
+                side_effect=RuntimeError("weird failure")
+            )
+            with pytest.raises(SubscriptionFailed, match="Failed to subscribe"):
+                streaming_client.subscribe_index(1, on_update=lambda _: None)
+
+
+class TestSubscriptionListenerMisc:
+    def test_on_error_callback_failure_is_swallowed(self):
+        """If the user's on_error callback itself raises, it must not propagate."""
+        listener = _SubscriptionListener(
+            on_update=lambda _: None,
+            on_error=MagicMock(side_effect=RuntimeError("on_error boom")),
+            item="sy999",
+            fields=["m_LastPrice"],
+            stream_type="SymbolStatistics",
+        )
+        with pytest.raises(SubscriptionFailed):
+            listener.onSubscriptionError(1, "boom")
+
+    def test_on_update_error_with_no_error_callback_does_not_raise(self):
+        listener = _SubscriptionListener(
+            on_update=MagicMock(side_effect=ValueError("bad update")),
+            on_error=None,
+            item="sy999",
+            fields=["m_LastPrice"],
+            stream_type="SymbolStatistics",
+        )
+        update = MagicMock()
+        update.getValue = MagicMock(return_value="1.0")
+        listener.onItemUpdate(update)  # should not raise
+
+    def test_on_lost_updates_logs_without_raising(self):
+        listener = _SubscriptionListener(
+            on_update=lambda _: None,
+            on_error=None,
+            item="sy999",
+            fields=["m_LastPrice"],
+            stream_type="SymbolStatistics",
+        )
+        listener.onLostUpdates("sy999", 1, 5)  # should not raise

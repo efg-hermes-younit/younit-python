@@ -86,8 +86,7 @@ def _parse_token_response(response: httpx.Response) -> _TokenRecord:
     if not isinstance(token, str) or not token.strip():
         keys = sorted(str(key) for key in top_level)
         raise AuthError(
-            "Token response missing or invalid 'accessToken'; "
-            f"top-level keys received: {keys}."
+            f"Token response missing or invalid 'accessToken'; top-level keys received: {keys}."
         )
     if type(expires_in) is not int or expires_in <= 0:
         raise AuthError("Token response missing or invalid 'expiresIn'.")
@@ -204,9 +203,7 @@ class IdentityProvider:
                 follow_redirects=False,
             )
         except httpx.HTTPError as exc:
-            raise AuthError(
-                f"Failed to reach token endpoint ({type(exc).__name__})."
-            ) from None
+            raise AuthError(f"Failed to reach token endpoint ({type(exc).__name__}).") from None
         if not response.is_success:
             error_type = InvalidCredentials if response.status_code == 401 else AuthError
             raise error_type(

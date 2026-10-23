@@ -97,7 +97,7 @@ class Fund(BaseModel):
         return _parse_utc_to_cairo(v)
 
     @classmethod
-    def print_table(cls, funds: "list[Fund]") -> None:
+    def print_table(cls, funds: list[Fund]) -> None:
         """Print a list of funds as a formatted, aligned table.
 
         Convenience for examples/CLI use — not used internally by the SDK.

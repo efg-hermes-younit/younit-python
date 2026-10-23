@@ -84,8 +84,7 @@ class TestIdentityProvider:
             401,
             json={
                 "message": (
-                    f"Rejected {conf.FAKE_API_KEY} for {conf.FAKE_TRADING_ID}: "
-                    "must-not-be-shown"
+                    f"Rejected {conf.FAKE_API_KEY} for {conf.FAKE_TRADING_ID}: must-not-be-shown"
                 ),
                 "error_description": "Bearer abc.def.ghi",
                 "data": {"accessToken": "must-not-be-shown"},
@@ -156,9 +155,7 @@ class TestIdentityProvider:
     ):
         route = respx_mock.post(conf.TOKEN_URL).respond(200, json=conf.CLIENT_TOKEN_RESPONSE)
         provider = IdentityProvider(settings, mock_http)
-        provider._token = _TokenRecord(
-            "old-token", expires_in=seconds_left, token_type="Bearer"
-        )
+        provider._token = _TokenRecord("old-token", expires_in=seconds_left, token_type="Bearer")
         assert provider.get_token() == conf.FAKE_CLIENT_TOKEN
         assert route.call_count == 1
 

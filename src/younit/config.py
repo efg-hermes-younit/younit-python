@@ -126,8 +126,7 @@ class Settings(BaseSettings):
     default_market_id: int = Field(
         default=1,
         description=(
-            "Default market identifier. 1 = EGX (Egypt Stock Exchange). "
-            "Set EFG_DEFAULT_MARKET_ID."
+            "Default market identifier. 1 = EGX (Egypt Stock Exchange). Set EFG_DEFAULT_MARKET_ID."
         ),
         gt=0,
     )
@@ -141,8 +140,7 @@ class Settings(BaseSettings):
     streaming_adapter_trading: str = Field(
         default="PROXY_MarketBeatTrading",
         description=(
-            "Lightstreamer adapter for the ActiveOrders stream. "
-            "Set EFG_STREAMING_ADAPTER_TRADING."
+            "Lightstreamer adapter for the ActiveOrders stream. Set EFG_STREAMING_ADAPTER_TRADING."
         ),
     )
 

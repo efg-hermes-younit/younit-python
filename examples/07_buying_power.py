@@ -28,4 +28,3 @@ with Client() as client:
     # you don't need to call it yourself before using them. Use place_order()
     # directly only if you need to supply a pre-fetched profileId, or if
     # you've already retrieved it earlier in your own workflow.
-    

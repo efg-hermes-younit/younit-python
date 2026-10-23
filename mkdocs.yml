@@ -1,8 +1,8 @@
 site_name: younit
 site_description: Official Python SDK and MCP server for the EFG ONE Trading API
 site_author: EFG Hermes
-repo_url: https://github.com/efg-hermes-younit/younit-python
-repo_name: efg-hermes-younit/younit-python
+repo_url: https://github.com/efg-hermes-younit/younit-python-sdk
+repo_name: efg-hermes-younit/younit-python-sdk
 docs_dir: docs
 site_dir: site
 

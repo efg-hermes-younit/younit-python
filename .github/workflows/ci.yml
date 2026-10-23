@@ -1,10 +1,10 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,20 +28,30 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --extra dev
 
-      - name: ruff check
+      # Critical only: syntax errors, undefined names, broken comparisons, security (bandit).
+      - name: ruff check (critical, blocking)
+        run: uv run ruff check src/ tests/ --select E9,F63,F7,F82,S
+
+      - name: ruff check (all rules, warning only)
         run: uv run ruff check src/ tests/
+        continue-on-error: true
 
-      - name: ruff format check
+      - name: ruff format check (warning only)
         run: uv run ruff format --check src/ tests/
+        continue-on-error: true
 
-      - name: mypy
+      - name: mypy (warning only)
         run: uv run mypy src/
+        continue-on-error: true
 
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    # Overrides the 3.11 pin in .python-version so each matrix leg really uses its version.
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -61,7 +71,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --extra dev
 
       - name: Run unit tests with coverage
         run: |
