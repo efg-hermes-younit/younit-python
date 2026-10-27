@@ -14,7 +14,13 @@ from younit import Client
 with Client() as client:
     # Top gainers today on EGX
     # Note: markets may be closed — lists will be empty outside trading hours
-    movers = client.get_top_movers(limit=50)
+    # Snapshots for untraded stocks can have None price/change fields; drop them
+    # so only real movers are ranked and formatted.
+    movers = [
+        m
+        for m in client.get_top_movers(limit=50)
+        if m.last is not None and m.change is not None and m.change_pct is not None
+    ]
 
     print("=== Top Gainers ===")
     for m in movers[:5]:
