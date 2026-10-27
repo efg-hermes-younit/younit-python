@@ -1129,7 +1129,7 @@ class Client:
                 ``order_id`` is now always populated regardless of this flag
                 (see :meth:`place_order`). ``list_orders()``'s ``Status`` is
                 a string (e.g. ``"Accepted"``), so it's surfaced as the
-                ``Order.status_text`` extra attribute (not the typed ``int``
+                ``Order.status_text`` field (not the typed ``int``
                 ``.status`` field, which stays ``None`` here — that field's
                 numeric codes are unconfirmed). If the placed order isn't
                 found in :meth:`list_orders`'s result (rare, e.g. a brief
@@ -1238,7 +1238,7 @@ class Client:
                 ``order_id`` is now always populated regardless of this
                 flag. ``list_orders()``'s ``Status`` is a string (e.g.
                 ``"Accepted"``), so it's surfaced as the ``Order.status_text``
-                extra attribute (not the typed ``int`` ``.status`` field,
+                field (not the typed ``int`` ``.status`` field,
                 which stays ``None`` here — that field's numeric codes are
                 unconfirmed). If the placed order isn't found in
                 :meth:`list_orders`'s result (rare, e.g. a brief propagation
@@ -1384,9 +1384,9 @@ class Client:
         ``order_history()`` would have been. ``list_orders()``'s ``Status``
         is a string (e.g. ``"Accepted"``), incompatible with the typed
         ``int`` ``Order.status`` field (unconfirmed numeric codes), so it's
-        surfaced instead as a NEW, non-schema ``Order.status_text`` extra
-        attribute (see ``Order``'s ``extra="allow"`` config), alongside
-        ``.average_price`` (fill average) also as an extra attribute. If the
+        surfaced instead as a NEW, non-schema ``Order.status_text`` field
+        (``None`` when this lookup doesn't resolve), alongside
+        ``.average_price`` (fill average). If the
         order_id isn't found in ``list_orders()``'s result (rare, e.g. a
         brief propagation lag before it appears), falls back to the plain
         stub, same as before — never raises. Pass ``confirm=False`` to skip
@@ -1609,8 +1609,8 @@ class Client:
                 is_market_price=stub.is_market_price,  # not exposed by list_orders()
                 filled_quantity=row.get("ExecutedQty"),
                 symbol=reuter_id.split(".")[0] if reuter_id else None,
-                # Extra (non-schema) field — see Order's extra="allow"
-                # config. status is deliberately NOT set on the typed int
+                # `status_text` holds the string status from list_orders().
+                # status is deliberately NOT set on the typed int
                 # `status` field: list_orders()'s Status is a string (e.g.
                 # "Accepted"), not the unconfirmed numeric code.
                 status_text=row.get("Status"),

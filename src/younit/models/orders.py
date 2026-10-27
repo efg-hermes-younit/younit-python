@@ -200,6 +200,13 @@ class Order(BaseModel):
         status: Order status code, if returned.
         is_market_price: True if this is a market order.
         expire_date: Expiry date for Good Till Date orders.
+        symbol: Ticker symbol, if known.
+        status_text: Real order status string (e.g. ``"Accepted"``), populated
+            from ``list_orders()`` (``POST /core-services/Orders``) when
+            ``Client.place_order()`` confirms a placement. ``None`` when the
+            confirmation lookup failed or the order wasn't listed yet.
+        average_price: Average fill price from ``list_orders()``. ``None`` under
+            the same conditions as ``status_text``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="allow")
@@ -240,6 +247,8 @@ class Order(BaseModel):
         alias="ExpiryDate",
     )
     symbol: str | None = Field(default=None, alias="Symbol")
+    status_text: str | None = Field(default=None, alias="StatusText")
+    average_price: float | None = Field(default=None, alias="AveragePrice")
 
 
 class OrderHistoryEntry(BaseModel):

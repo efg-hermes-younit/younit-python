@@ -1197,6 +1197,8 @@ class TestPlaceOrder:
         list_orders_spy.assert_called_once_with(profile_id=4242)
         assert result.order_id == 54250949
         assert result.is_market_price is True
+        assert result.status_text is None
+        assert result.average_price is None
 
     def test_list_orders_failure_falls_back_to_stub(self, respx_mock, monkeypatch):
         client = _make_client(respx_mock)
@@ -1214,6 +1216,8 @@ class TestPlaceOrder:
             client.close()
 
         assert result.order_id == 54250949
+        assert result.status_text is None
+        assert result.average_price is None
 
     def test_result_false_raises_order_rejected(self, respx_mock):
         client = _make_client(respx_mock)
