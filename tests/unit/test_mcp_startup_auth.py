@@ -16,8 +16,6 @@ from younit.exceptions import APIError, ConfigError
 from younit.mcp_server import server
 
 AUTH_MESSAGE = "Authentication failed: check your Trading ID and API key."
-SECRET_TRADING_ID = "sentinel-trading-id-123"
-SECRET_API_KEY = "sentinel-api-key-456"
 HTML_PAGE = "<html><body>Blocked by firewall</body></html>"
 
 
@@ -25,8 +23,8 @@ HTML_PAGE = "<html><body>Blocked by firewall</body></html>"
 def run_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Run main() with a clean module state and a recording app.run."""
     calls: list[dict[str, Any]] = []
-    monkeypatch.setenv("TRADING_ID", SECRET_TRADING_ID)
-    monkeypatch.setenv("API_KEY", SECRET_API_KEY)
+    monkeypatch.setenv("TRADING_ID", conf.FAKE_TRADING_ID)
+    monkeypatch.setenv("API_KEY", conf.FAKE_API_KEY)
     monkeypatch.setenv("EFG_MCP_READONLY", "true")
     monkeypatch.setattr(sys, "argv", ["younit-mcp"])
     monkeypatch.setattr(server, "_client", None)
@@ -67,8 +65,8 @@ def test_startup_auth_failure_keeps_server_up(
     captured = capsys.readouterr()
     assert captured.out == ""
     for text in (str(caught.value), captured.err):
-        assert SECRET_TRADING_ID not in text
-        assert SECRET_API_KEY not in text
+        assert conf.FAKE_TRADING_ID not in text
+        assert conf.FAKE_API_KEY not in text
 
 
 @pytest.mark.parametrize(
