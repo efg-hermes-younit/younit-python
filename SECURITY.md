@@ -12,7 +12,7 @@
 
 Please report security issues by emailing:
 
-> **younit-info@efg-hermes.com**
+> **support@younit.io**
 
 Include:
 - A description of the vulnerability
