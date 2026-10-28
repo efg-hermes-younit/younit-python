@@ -1,12 +1,25 @@
 # younit
 
-Python SDK and MCP server for the EFG ONE Trading API.
+Official Python SDK and MCP server for the Younit API.
 
 [![PyPI](https://img.shields.io/pypi/v/younit-sdk)](https://pypi.org/project/younit-sdk/)
 [![Python](https://img.shields.io/pypi/pyversions/younit-sdk)](https://pypi.org/project/younit-sdk/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
-[![CI](https://github.com/efg-hermes-younit/younit-python-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/efg-hermes-younit/younit-python-sdk/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/efg-hermes-younit/younit-python/blob/master/LICENSE)
+[![CI](https://github.com/efg-hermes-younit/younit-python/actions/workflows/ci.yml/badge.svg)](https://github.com/efg-hermes-younit/younit-python/actions/workflows/ci.yml)
+
 ## Installation
+
+Requires Python 3.11 or newer.
+
+```bash
+pip install younit-sdk
+# or, with uv
+uv add younit-sdk
+```
+
+This installs the `younit` Python package and the `younit-mcp` command.
+
+### From source (examples and development)
 
 Requires [uv](https://github.com/astral-sh/uv) — it manages Python versions itself, so you don't need Python pre-installed.
 
@@ -21,7 +34,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Then clone and install:
 
 ```bash
-git clone https://github.com/efg-hermes-younit/younit-python-sdk.git
+git clone https://github.com/efg-hermes-younit/younit-python.git
 cd younit-python
 uv sync
 ```
@@ -36,7 +49,7 @@ uv sync
 
 ## Credentials
 
-Copy `.env.example` to `.env` in the project root and fill in your credentials (`.env` is already gitignored — never commit it):
+Set your credentials as environment variables, or put them in a `.env` file in your working directory (never commit it). If you cloned the repository, copy the template first:
 
 ```bash
 cp .env.example .env
@@ -64,12 +77,12 @@ than falling back to a different authentication method.
 
 Other settings retain their `EFG_` prefix (for example, `EFG_SIMULATION=true`).
 Missing credentials are reported by name; credential values are never included
-in authentication errors. See [MCP authentication](docs/mcp.md#authentication)
+in authentication errors. See [MCP authentication](https://github.com/efg-hermes-younit/younit-python/blob/master/docs/mcp.md#authentication)
 for server configuration.
 
 ## Usage
 
-See [`examples/`](examples/) for complete, runnable examples covering quotes, portfolio, orders, funds, streaming, and the MCP server — start with [`examples/01_quote.py`](examples/01_quote.py).
+See [`examples/`](https://github.com/efg-hermes-younit/younit-python/tree/master/examples) for complete, runnable examples covering quotes, portfolio, orders, funds, streaming, and the MCP server — start with [`examples/01_quote.py`](https://github.com/efg-hermes-younit/younit-python/blob/master/examples/01_quote.py).
 
 **Method naming convention**: unprefixed methods (`buy()`, `sell()`, `positions()`, etc.) operate on stocks. Fund-equivalent methods use an explicit `_fund` suffix (`buy_fund()`, `sell_fund()`, `fund_positions()`, etc.).
 
@@ -79,9 +92,9 @@ See [`examples/`](examples/) for complete, runnable examples covering quotes, po
 younit-mcp --transport stdio
 ```
 
-See [`examples/mcp/claude_desktop_setup.md`](examples/mcp/claude_desktop_setup.md) for Claude Desktop configuration.
+See [`examples/mcp/claude_desktop_setup.md`](https://github.com/efg-hermes-younit/younit-python/blob/master/examples/mcp/claude_desktop_setup.md) for Claude Desktop configuration.
 
-The [`examples/mcp/ai_client/`](examples/mcp/ai_client/) demos show an LLM (OpenAI, Azure OpenAI, or Anthropic) autonomously driving these tools — see the extras table above for the install command.
+The [`examples/mcp/ai_client/`](https://github.com/efg-hermes-younit/younit-python/tree/master/examples/mcp/ai_client) demos show an LLM (OpenAI, Azure OpenAI, or Anthropic) autonomously driving these tools — see the extras table above for the install command.
 
 ## Development
 
@@ -92,16 +105,16 @@ uv run ruff check src tests
 uv run mypy src
 ```
 
-`tests/live/` contains real-money live-trading tests, gated separately — see [tests/live/README.md](tests/live/README.md). Not part of the standard workflow above.
+`tests/live/` contains real-money live-trading tests, gated separately — see [tests/live/README.md](https://github.com/efg-hermes-younit/younit-python/blob/master/tests/live/README.md). Not part of the standard workflow above.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) before reporting vulnerabilities.
+See [SECURITY.md](https://github.com/efg-hermes-younit/younit-python/blob/master/SECURITY.md) before reporting vulnerabilities.
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE).
+Apache 2.0 — see [LICENSE](https://github.com/efg-hermes-younit/younit-python/blob/master/LICENSE).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/efg-hermes-younit/younit-python/blob/master/CONTRIBUTING.md).
