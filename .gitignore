@@ -99,3 +99,6 @@ diagnostics/
 *.tar.gz
 sbom*.json
 sigstore/
+
+# Local promo/demo scripts
+/scripts/
