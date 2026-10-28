@@ -1,0 +1,61 @@
+{
+  "manifest_version": "0.4",
+  "name": "younit",
+  "display_name": "Younit",
+  "version": "0.1.0",
+  "description": "MCP server for the Younit trading API (EGX market data, portfolio and orders).",
+  "author": {
+    "name": "EFG Hermes",
+    "email": "support@younit.io"
+  },
+  "server": {
+    "type": "uv",
+    "entry_point": "server/main.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "server/main.py"],
+      "env": {
+        "TRADING_ID": "${user_config.trading_id}",
+        "API_KEY": "${user_config.api_key}",
+        "EFG_MCP_READONLY": "${user_config.readonly}",
+        "EFG_MCP_MAX_ORDER_VALUE_EGP": "${user_config.max_order_value_egp}"
+      }
+    }
+  },
+  "user_config": {
+    "trading_id": {
+      "type": "string",
+      "title": "Trading ID",
+      "description": "Your Younit trading identifier.",
+      "required": true
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Your Younit API key. Stored securely by the host application.",
+      "sensitive": true,
+      "required": true
+    },
+    "readonly": {
+      "type": "boolean",
+      "title": "Read-only mode (recommended)",
+      "description": "When enabled, order placement, amendment and cancellation tools are not available.",
+      "default": true
+    },
+    "max_order_value_egp": {
+      "type": "number",
+      "title": "Max order value (EGP)",
+      "description": "Maximum value (quantity x price) of a single order in EGP. Leave empty to use the server default.",
+      "required": false,
+      "min": 0
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.11"
+    }
+  },
+  "keywords": ["younit", "trading", "egx", "egypt", "market-data"],
+  "license": "Apache-2.0"
+}
