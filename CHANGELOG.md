@@ -69,4 +69,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Initial public release.
 
-[Unreleased]: https://github.com/efg-hermes-younit/younit-python-sdk/compare/v0.1.0...HEAD
+- MCP server logs to stderr only; clear error when authentication fails at startup
+
+[Unreleased]: https://github.com/efg-hermes-younit/younit-python/compare/v0.1.0...HEAD

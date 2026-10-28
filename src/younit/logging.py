@@ -59,12 +59,6 @@ def configure_logging(level: str = "INFO", *, debug: bool = False) -> None:
     """
     log_level = logging.DEBUG if debug else getattr(logging, level.upper(), logging.INFO)
 
-    logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
-        level=log_level,
-    )
-
     shared_processors: list[structlog.types.Processor] = [
         _redact_sensitive,
         structlog.contextvars.merge_contextvars,
@@ -97,7 +91,8 @@ def configure_logging(level: str = "INFO", *, debug: bool = False) -> None:
         foreign_pre_chain=shared_processors,
     )
 
-    handler = logging.StreamHandler(sys.stdout)
+    # stderr only: with the MCP stdio transport, stdout carries JSON-RPC exclusively.
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()

@@ -33,6 +33,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from younit.client import Client
+from younit.exceptions import AuthError, ConfigError, EFGError
 from younit.mcp_server.safety import (
     DailyOrderCounter,
     SafetySettings,
@@ -50,13 +51,14 @@ app = FastMCP("younit")
 # These are initialised in main() after argument parsing
 _client: Client | None = None
 _safety: SafetySettings | None = None
+_startup_error: str | None = None
 _order_counter: DailyOrderCounter = DailyOrderCounter()
 
 
 def _get_client() -> Client:
     """Get the initialised SDK client."""
     if _client is None:
-        raise RuntimeError("MCP server not initialised. Call main() first.")
+        raise RuntimeError(_startup_error or "MCP server not initialised. Call main() first.")
     return _client
 
 
@@ -788,7 +790,7 @@ def main() -> None:
     Parses transport arguments, initialises the SDK client from environment
     variables, and starts the MCP server.
     """
-    global _client, _safety
+    global _client, _safety, _startup_error
 
     parser = argparse.ArgumentParser(
         description="Younit Trading API — MCP Server",
@@ -822,8 +824,26 @@ Safety settings (optional):
     # Initialise safety settings from env vars
     _safety = SafetySettings()
 
-    # Initialise SDK client (reads credentials from env vars)
-    _client = Client()
+    # Initialise SDK client (reads credentials from env vars). On failure the
+    # server stays up so the MCP handshake succeeds and every tool call reports
+    # the problem. The message never includes credentials or server response text.
+    try:
+        _client = Client()
+        _startup_error = None
+    except AuthError as exc:
+        _client = None
+        _startup_error = "Authentication failed: check your Trading ID and API key."
+        status = getattr(exc, "status_code", None)
+        detail = f"{type(exc).__name__}, HTTP {status}" if status else type(exc).__name__
+        print(f"{_startup_error} ({detail})", file=sys.stderr)
+    except ConfigError as exc:
+        _client = None
+        _startup_error = f"Server failed to start: {exc.message}"
+        print(_startup_error, file=sys.stderr)
+    except EFGError as exc:
+        _client = None
+        _startup_error = f"Server failed to start ({type(exc).__name__}); see the server log."
+        print(_startup_error, file=sys.stderr)
 
     # Register write tools only when not in read-only mode
     if not _safety.readonly:
