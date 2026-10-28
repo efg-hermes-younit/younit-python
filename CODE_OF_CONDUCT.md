@@ -24,6 +24,6 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to
-the project maintainers at **younit-info@efg-hermes.com**.
+the project maintainers at **support@younit.io**.
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.
