@@ -1620,7 +1620,11 @@ class Client:
         return stub
 
     def list_orders(
-        self, *, profile_id: int, market_id: int | None = None, _timeout: float | None = None
+        self,
+        *,
+        profile_id: int | None = None,
+        market_id: int | None = None,
+        _timeout: float | None = None,
     ) -> list[dict[str, Any]]:
         """List orders belonging to a trading profile.
 
@@ -1628,7 +1632,9 @@ class Client:
         ``OrderId``, ``StockId``, ``ProfileId``, ``Quantity``, ``Price``, and ``Status``.
 
         Args:
-            profile_id: The trading profile ID (see :meth:`buying_power`).
+            profile_id: The trading profile ID. If None, resolved via the
+                :attr:`profile_id` property (cached from a prior
+                ``buying_power()``/``buy()``/``sell()`` call, else auto-resolved).
             market_id: Market identifier. Defaults to configured default (1 = EGX).
             _timeout: Per-request read timeout override (seconds). Defaults to client default.
 
@@ -1636,9 +1642,21 @@ class Client:
             The raw order rows as dictionaries.
 
         Raises:
+            InvalidOrder: If no profile_id could be resolved.
             APIError: On HTTP error.
         """
         import httpx
+
+        if profile_id is None:
+            profile_id = self.profile_id
+        if profile_id is None:
+            from younit.exceptions import InvalidOrder
+
+            raise InvalidOrder(
+                "No profile_id available for list_orders. Call buying_power() "
+                "or a prior buy()/sell() this session first, or pass profile_id "
+                "explicitly."
+            )
 
         url = f"{self._base_url}/core-services/Orders"
         headers = {

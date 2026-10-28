@@ -205,8 +205,6 @@ class Order(BaseModel):
             from ``list_orders()`` (``POST /core-services/Orders``) when
             ``Client.place_order()`` confirms a placement. ``None`` when the
             confirmation lookup failed or the order wasn't listed yet.
-        average_price: Average fill price from ``list_orders()``. ``None`` under
-            the same conditions as ``status_text``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="allow")
@@ -248,7 +246,6 @@ class Order(BaseModel):
     )
     symbol: str | None = Field(default=None, alias="Symbol")
     status_text: str | None = Field(default=None, alias="StatusText")
-    average_price: float | None = Field(default=None, alias="AveragePrice")
 
 
 class OrderHistoryEntry(BaseModel):

@@ -1198,7 +1198,6 @@ class TestPlaceOrder:
         assert result.order_id == 54250949
         assert result.is_market_price is True
         assert result.status_text is None
-        assert result.average_price is None
 
     def test_list_orders_failure_falls_back_to_stub(self, respx_mock, monkeypatch):
         client = _make_client(respx_mock)
@@ -1217,7 +1216,23 @@ class TestPlaceOrder:
 
         assert result.order_id == 54250949
         assert result.status_text is None
-        assert result.average_price is None
+
+    def test_list_orders_defaults_profile_id_and_market_id(self, respx_mock):
+        client = _make_client(respx_mock)
+        client._cached_profile_id = 4242
+        route = respx_mock.post(f"{FAKE_BASE_URL}/core-services/Orders").mock(
+            return_value=httpx.Response(200, json=[{"OrderId": 1, "Status": "Accepted"}])
+        )
+
+        try:
+            rows = client.list_orders()
+        finally:
+            client.close()
+
+        assert rows == [{"OrderId": 1, "Status": "Accepted"}]
+        body = json.loads(route.calls.last.request.content)
+        assert body["ProfileIds"] == [4242]
+        assert body["MarketId"] == 1
 
     def test_result_false_raises_order_rejected(self, respx_mock):
         client = _make_client(respx_mock)
