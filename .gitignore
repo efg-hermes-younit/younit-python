@@ -100,5 +100,9 @@ diagnostics/
 sbom*.json
 sigstore/
 
+# MCPB bundle staging and output
+mcpb/build/
+dist/
+
 # Local promo/demo scripts
 /scripts/
