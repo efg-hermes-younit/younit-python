@@ -4,12 +4,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # create GitHub Release
+  contents: write   # create/update GitHub Release
   id-token: write   # OIDC trusted publishing
 
 jobs:
   build:
     name: Build Distribution
+    if: startsWith(github.ref, 'refs/tags/v')   # only run on a v* tag, never a branch
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -26,21 +27,30 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Extract version from tag
+      - name: Check tag matches package version
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PKG_VERSION=$(grep -Po '__version__\s*=\s*"\K[^"]+' src/younit/_version.py)
+          echo "tag=$TAG_VERSION package=$PKG_VERSION"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag v$TAG_VERSION does not match package version $PKG_VERSION"
+            exit 1
+          fi
+          echo "version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
+      - name: Install runtime dependencies
         run: uv sync
 
       - name: Build wheel and sdist
         run: uv build
 
-      - name: Generate SBOM
+      - name: Generate SBOM (runtime environment)
         run: |
-          uv run cyclonedx-py environment \
+          uvx --from "cyclonedx-bom>=4.4" cyclonedx-py environment \
             --output-format json \
-            --output-file sbom-${{ steps.version.outputs.version }}.json
+            --output-file sbom-${{ steps.version.outputs.version }}.json \
+            .venv/bin/python
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -50,14 +60,31 @@ jobs:
             dist/
             sbom-*.json
 
-  sign-and-publish:
-    name: Sign & Publish
+  publish:
+    name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/younit/
+      url: https://pypi.org/project/younit-sdk/
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  release:
+    name: Create GitHub Release
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -70,35 +97,17 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
 
-      - name: Publish to PyPI (trusted publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-
-  release:
-    name: Create GitHub Release
-    needs: [build, sign-and-publish]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-${{ github.ref_name }}
-
       - name: Extract changelog excerpt
-        id: changelog
         run: |
           awk '/^## \[${{ needs.build.outputs.version }}\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > release_notes.md
           cat release_notes.md
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: release_notes.md
           files: |
             dist/*.whl
             dist/*.tar.gz
-            dist/*.sigstore
+            dist/*.sigstore*
             sbom-*.json

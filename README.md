@@ -9,7 +9,7 @@ Official Python SDK and MCP server for the Younit API.
 
 ## Installation
 
-Requires Python 3.11 or newer.
+**From PyPI (coming soon).** Requires Python 3.11 or newer. Until then, install from source (below).
 
 ```bash
 pip install younit-sdk
