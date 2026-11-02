@@ -18,7 +18,8 @@
         "TRADING_ID": "${user_config.trading_id}",
         "API_KEY": "${user_config.api_key}",
         "EFG_MCP_READONLY": "${user_config.readonly}",
-        "EFG_MCP_MAX_ORDER_VALUE_EGP": "${user_config.max_order_value_egp}"
+        "EFG_MCP_MAX_ORDER_VALUE_EGP": "${user_config.max_order_value_egp}",
+        "EFG_MCP_MAX_DAILY_ORDERS": "${user_config.max_daily_orders}"
       }
     }
   },
@@ -39,14 +40,23 @@
     "readonly": {
       "type": "boolean",
       "title": "Read-only mode (recommended)",
-      "description": "When enabled, order placement, amendment and cancellation tools are not available.",
+      "description": "Read-only by default. While ticked, the order placement, amendment and cancellation tools are not available. Untick to turn them on.",
       "default": true
     },
     "max_order_value_egp": {
       "type": "number",
       "title": "Max order value (EGP)",
-      "description": "Maximum value (quantity x price) of a single order in EGP. Leave empty to use the server default.",
+      "description": "Maximum value (quantity x limit price) of one order in EGP. While the cap is on, market orders are rejected. 0 turns the cap off.",
       "required": false,
+      "default": 1000,
+      "min": 0
+    },
+    "max_daily_orders": {
+      "type": "number",
+      "title": "Max orders per day",
+      "description": "Maximum orders the server sends per day. Resets at midnight Cairo time and when the server restarts. 0 turns the limit off.",
+      "required": false,
+      "default": 100,
       "min": 0
     }
   },
