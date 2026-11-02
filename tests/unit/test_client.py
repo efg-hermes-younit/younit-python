@@ -236,7 +236,6 @@ def _make_client(respx_mock, raw_stocks=RAW_STOCKS) -> Client:
     return Client(
         trading_id=conf.FAKE_TRADING_ID,
         api_key=conf.FAKE_API_KEY,
-        simulation=True,
         lazy_auth=True,
         lazy_symbols=True,
         _base_url_override=FAKE_BASE_URL,

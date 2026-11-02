@@ -282,11 +282,6 @@ class TestBuildDefaultHeaders:
         assert "x-api-version" in headers
         assert "User-Agent" in headers
 
-    def test_simulation_sets_server_select(self) -> None:
-        s = Settings(trading_id="test-id", api_key="test-key", simulation=True)
-        headers = build_default_headers(s)
-        assert headers["X-Server-Select"] == "simulation"
-
     def test_real_sets_server_select(self) -> None:
         s = Settings(trading_id="test-id", api_key="test-key", simulation=False)
         headers = build_default_headers(s)

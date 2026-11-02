@@ -37,6 +37,11 @@ from younit.exceptions import (
     Unauthorized,
 )
 
+SIMULATION_DISABLED_MESSAGE = (
+    "EFG_SIMULATION is temporarily disabled in this version while simulation mode "
+    "is being verified. Remove EFG_SIMULATION to continue."
+)
+
 
 class TestExceptionHierarchy:
     """Verify the exception hierarchy is correct."""
@@ -138,7 +143,7 @@ class TestSettings:
         assert s.default_market_id == 1
 
     def test_base_url_is_a_constant_not_a_settings_field(self) -> None:
-        """base_url must not be configurable via Settings/env — it's a fixed module constant."""
+        """base_url must not be configurable via Settings/env â€” it's a fixed module constant."""
         assert "base_url" not in Settings.model_fields
         assert config._BASE_URL == "https://tradingapis.efghermesone.com"
 
@@ -146,25 +151,52 @@ class TestSettings:
         assert config._TOKEN_URL == ("https://tradingapis.efghermesone.com/api/public-keys/token")
 
     def test_streaming_url_is_a_constant_not_a_settings_field(self) -> None:
-        """Streaming URL must not be configurable via Settings/env — no sim/prod split."""
+        """Streaming URL must not be configurable via Settings/env â€” no sim/prod split."""
         assert "streaming_url" not in Settings.model_fields
         assert "streaming_url_prod" not in Settings.model_fields
         assert "streaming_url_sim" not in Settings.model_fields
         assert config._STREAMING_URL == "https://iengine138.hermesonline.com/"
 
-    def test_simulation_docstring_notes_no_streaming_effect(self) -> None:
-        description = Settings.model_fields["simulation"].description
-        assert description is not None
-        assert "streaming" in description.lower()
-        assert "production host" in description.lower()
+    def test_simulation_defaults_to_false(self) -> None:
+        s = Settings(trading_id="test-id", api_key="test-key")
+        assert s.simulation is False
+        assert s.server_select_header == "real"
 
-    def test_simulation_mode(self) -> None:
-        s = Settings(
-            trading_id="test-id",
-            api_key="test-key",
-            simulation=True,
-        )
-        assert s.server_select_header == "simulation"
+    @pytest.mark.parametrize("value", ["true", "True", "1", "yes", "on"])
+    def test_true_simulation_env_raises_config_error(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
+        monkeypatch.setenv("TRADING_ID", "env-id")
+        monkeypatch.setenv("API_KEY", "env-key")
+        monkeypatch.setenv("EFG_SIMULATION", value)
+        with pytest.raises(ConfigError) as exc_info:
+            Settings()
+        assert exc_info.value.message == SIMULATION_DISABLED_MESSAGE
+
+    def test_true_simulation_kwarg_raises_config_error(self) -> None:
+        with pytest.raises(ConfigError) as exc_info:
+            Settings(trading_id="test-id", api_key="test-key", simulation=True)
+        assert exc_info.value.message == SIMULATION_DISABLED_MESSAGE
+
+    def test_false_simulation_env_is_accepted(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("TRADING_ID", "env-id")
+        monkeypatch.setenv("API_KEY", "env-key")
+        monkeypatch.setenv("EFG_SIMULATION", "false")
+        assert Settings().simulation is False
+
+    def test_client_fails_at_startup_when_simulation_env_is_true(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("TRADING_ID", "env-id")
+        monkeypatch.setenv("API_KEY", "env-key")
+        monkeypatch.setenv("EFG_SIMULATION", "true")
+        with pytest.raises(ConfigError, match="EFG_SIMULATION is temporarily disabled"):
+            Client(lazy_auth=True, lazy_symbols=True)
+
+    def test_client_fails_at_startup_when_simulation_arg_is_true(self) -> None:
+        with pytest.raises(ConfigError) as exc_info:
+            Client(trading_id="test-id", api_key="test-key", simulation=True, lazy_auth=True)
+        assert exc_info.value.message == SIMULATION_DISABLED_MESSAGE
 
     def test_real_mode(self) -> None:
         s = Settings(
@@ -173,6 +205,34 @@ class TestSettings:
             simulation=False,
         )
         assert s.server_select_header == "real"
+
+    def test_env_examples_do_not_mention_simulation(self) -> None:
+        root = pathlib.Path(__file__).resolve().parents[2]
+        env_example = root / ".env.example"
+        assert env_example.read_text(encoding="utf-8").splitlines()[0] == (
+            "TRADING_ID=your-trading-id"
+        )
+        for path in (env_example, root / "examples" / "mcp" / "ai_client" / ".env.example"):
+            assert "EFG_SIMULATION" not in path.read_text(encoding="utf-8"), path
+
+    def test_mcp_tool_descriptions_do_not_mention_paper_trading(self) -> None:
+        import asyncio
+
+        from younit.mcp_server import server as mcp_server
+        from younit.mcp_server.safety import SafetySettings
+
+        settings = SafetySettings()
+        settings.readonly = False
+        mcp_server.configure_write_tools(settings)
+        try:
+            tools = asyncio.run(mcp_server.app.list_tools())
+        finally:
+            mcp_server._remove_write_tools()
+        assert {"buy", "sell", "buy_fund", "sell_fund"} <= {t.name for t in tools}
+        for tool in tools:
+            text = (tool.description or "").lower()
+            assert "paper" not in text, tool.name
+            assert "simulation" not in text, tool.name
 
     def test_invalid_language_raises(self) -> None:
         with pytest.raises(ValidationError):
@@ -185,11 +245,10 @@ class TestSettings:
     def test_env_var_loading(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TRADING_ID", "env-id")
         monkeypatch.setenv("API_KEY", "env-key")
-        monkeypatch.setenv("EFG_SIMULATION", "true")
         s = Settings()
         assert s.trading_id == "env-id"
         assert s.api_key.get_secret_value() == "env-key"
-        assert s.simulation is True
+        assert s.simulation is False
 
     def test_constructor_overrides_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TRADING_ID", "env-id")

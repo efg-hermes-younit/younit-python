@@ -123,7 +123,6 @@ def settings() -> Settings:
         trading_id="trading-123",
         api_key="test-key",
         streaming_adapter="PROXY_MarketBeat",
-        simulation=True,
     )
 
 
