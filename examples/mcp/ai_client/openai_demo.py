@@ -6,8 +6,8 @@ tools to call, the demo executes them via the MCP client SDK, and the model
 answers using the results. This is not a scripted demo — ask anything, the
 model decides the tool-call plan.
 
-The MCP server is always spawned in EFG_MCP_READONLY mode (see
-_mcp_bridge.py) — this demo can never place, amend, or cancel a real order.
+The MCP server is read-only unless READ_ONLY is set to False in _mcp_bridge.py
+(see that file and the README); a warning is printed at startup in that case.
 
 Setup:
   uv sync --extra dev --extra ai-demo
@@ -27,7 +27,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _mcp_bridge import call_tool, connect_to_server, list_tools, to_openai_tools
+from _mcp_bridge import (
+    call_tool,
+    connect_to_server,
+    list_tools,
+    mode_note_for_system_prompt,
+    to_openai_tools,
+)
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
@@ -37,9 +43,8 @@ MODEL = os.environ.get("OPENAI_MODEL", "gpt-5")
 
 SYSTEM_PROMPT = (
     "You are a trading assistant for the Egyptian Exchange (EGX), backed by younit "
-    "MCP tools. The server is running in read-only mode: you cannot place, amend, "
-    "or cancel real orders. Call whatever tools you need, in whatever order makes "
-    "sense, before giving your final answer."
+    "MCP tools. " + mode_note_for_system_prompt() + " Call whatever tools you need, in whatever "
+    "order makes sense, before giving your final answer."
 )
 
 

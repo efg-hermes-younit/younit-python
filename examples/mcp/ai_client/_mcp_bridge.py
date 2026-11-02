@@ -5,14 +5,28 @@ anthropic_demo.py to spawn the younit MCP server, list its tools in each
 provider's function-calling format, and execute tool calls the LLM decides
 to make.
 
-SAFETY: connect_to_server() ALWAYS spawns the server subprocess with
-EFG_MCP_READONLY=true, no matter what the caller's own environment has set.
-This is hardcoded here — not exposed as a parameter — specifically so that
-an LLM driving one of these demos can never place, amend, or cancel a real
-order, regardless of how it reasons about the conversation. These demos are
-for showing an LLM discover and call read-only market/portfolio tools; they
-are not a safe place to exercise the write tools. To try the write tools,
-run examples/mcp/server.py directly (see examples/mcp/claude_desktop_setup.md).
+SAFETY: whether the AI can trade is decided ONLY by the READ_ONLY constant below
+(it defaults to True). The bridge sets EFG_MCP_READONLY for the server from that
+constant alone ("true" or "false"); it never reads EFG_MCP_READONLY from the
+environment or from .env, so a stray setting cannot turn trading on. The server
+is always started with an explicit value, which also beats any .env it reads.
+With READ_ONLY = False the AI can place, amend and cancel REAL orders, limited by
+EFG_MCP_MAX_ORDER_VALUE_EGP and EFG_MCP_MAX_DAILY_ORDERS; a warning is printed
+at startup.
+
+ENVIRONMENT: the server does not inherit the demo's whole environment (that
+would hand it the LLM provider keys). It receives only the variables in
+``FORWARDED_ENV_VARS`` (plus proxy / CA-bundle variables) that are set and
+non-empty, plus EFG_MCP_READONLY from READ_ONLY. Values are never printed. The
+server runs with this directory as its working directory, so the ``.env`` it
+reads itself is examples/mcp/ai_client/.env — the same file the demos load —
+regardless of where you launched the demo from.
+
+SIMULATION: simulation mode is temporarily disabled in this version. If
+EFG_SIMULATION is set (after the demo has loaded ai_client/.env) to anything
+other than empty, "false", "0" or "no", the demo prints the SDK's message to
+stderr and exits with code 1 before starting the server. A set value is also
+forwarded to the server, so the server's own check applies too.
 """
 
 from __future__ import annotations
@@ -20,7 +34,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -28,7 +42,103 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
-_SERVER_SCRIPT = Path(__file__).resolve().parent.parent / "server.py"
+# Safety switch for all AI client demos.
+# True  = the AI can only read (quotes, portfolio, history...).
+# False = the AI can place, amend and cancel REAL orders on your account.
+READ_ONLY = True
+
+_HERE = Path(__file__).resolve().parent
+_SERVER_SCRIPT = _HERE.parent / "server.py"
+
+TRADING_WARNING = (
+    "WARNING: READ_ONLY is False in _mcp_bridge.py. The AI can place, amend and cancel "
+    "REAL orders on your account. The per-order value cap (EFG_MCP_MAX_ORDER_VALUE_EGP) "
+    "and the daily limit (EFG_MCP_MAX_DAILY_ORDERS) still apply."
+)
+
+# Same text as the SDK's ConfigError, so the demo fails the same way the server would.
+SIMULATION_DISABLED_MESSAGE = (
+    "EFG_SIMULATION is temporarily disabled in this version while simulation mode "
+    "is being verified. Remove EFG_SIMULATION to continue."
+)
+
+# Values of EFG_SIMULATION that mean "off"; anything else stops the demo.
+_SIMULATION_OFF_VALUES = frozenset({"", "false", "0", "no"})
+
+# Passed to the server explicitly when set. EFG_MCP_READONLY is deliberately
+# absent: it comes from READ_ONLY only, never from the environment or .env.
+FORWARDED_ENV_VARS = (
+    "TRADING_ID",
+    "API_KEY",
+    "EFG_LOG_LEVEL",
+    "EFG_SIMULATION",
+    "EFG_MCP_MAX_ORDER_VALUE_EGP",
+    "EFG_MCP_MAX_DAILY_ORDERS",
+)
+
+# Network plumbing the server's HTTP client honours; without these the demo
+# would stop working behind a proxy or a custom CA.
+_NETWORK_ENV_VARS = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+)
+
+
+def build_server_env(environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Environment for the spawned MCP server: forwarded variables plus read-only mode."""
+    source = os.environ if environ is None else environ
+    names = FORWARDED_ENV_VARS + _NETWORK_ENV_VARS
+    env = {name: source[name] for name in names if source.get(name, "").strip()}
+    env["EFG_MCP_READONLY"] = "true" if READ_ONLY else "false"  # from READ_ONLY only
+    return env
+
+
+def mode_note_for_system_prompt() -> str:
+    """One sentence telling the LLM whether trading is enabled."""
+    if READ_ONLY:
+        return (
+            "The server is running in read-only mode: you cannot place, amend, "
+            "or cancel real orders."
+        )
+    return (
+        "Trading is enabled: placing, amending or cancelling an order affects the "
+        "user's REAL account. Only do so when the user explicitly asks you to."
+    )
+
+
+def exit_if_simulation_requested(environ: Mapping[str, str] | None = None) -> None:
+    """Exit with code 1 if EFG_SIMULATION is set to anything but empty/false/0/no.
+
+    Checked before the server is started, after the demo has loaded ai_client/.env.
+    """
+    source = os.environ if environ is None else environ
+    if source.get("EFG_SIMULATION", "").strip().lower() not in _SIMULATION_OFF_VALUES:
+        print(SIMULATION_DISABLED_MESSAGE, file=sys.stderr, flush=True)
+        sys.exit(1)
+
+
+def warn_if_trading_enabled() -> None:
+    """Print the trading warning (to stderr) when READ_ONLY is False."""
+    if not READ_ONLY:
+        print(TRADING_WARNING, file=sys.stderr, flush=True)
+
+
+def server_parameters() -> StdioServerParameters:
+    """How the demos launch examples/mcp/server.py over stdio."""
+    return StdioServerParameters(
+        command=sys.executable,
+        args=[str(_SERVER_SCRIPT), "--transport", "stdio"],
+        env=build_server_env(),
+        cwd=_HERE,
+    )
 
 
 @asynccontextmanager
@@ -43,12 +153,9 @@ async def connect_to_server() -> AsyncIterator[ClientSession]:
     is established, its captured stderr is attached to the raised exception so
     the real crash reason is visible instead of a bare "Connection closed".
     """
-    env = {**os.environ, "EFG_MCP_READONLY": "true"}  # hard safety default, see module docstring
-    params = StdioServerParameters(
-        command=sys.executable,
-        args=[str(_SERVER_SCRIPT), "--transport", "stdio"],
-        env=env,
-    )
+    exit_if_simulation_requested()
+    warn_if_trading_enabled()
+    params = server_parameters()
     connected = False
     # Binary mode: the child writes raw bytes straight to this fd, and on Windows
     # those bytes aren't guaranteed to be UTF-8 — decode leniently below instead.
