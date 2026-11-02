@@ -75,7 +75,7 @@ under `data` in the production response. The parser also accepts these fields
 at the top level. Unexpected responses raise an authentication error rather
 than falling back to a different authentication method.
 
-Other settings retain their `EFG_` prefix (for example, `EFG_SIMULATION=true`).
+Other settings retain their `EFG_` prefix (for example, `EFG_LOG_LEVEL=WARNING`).
 Missing credentials are reported by name; credential values are never included
 in authentication errors. See [MCP authentication](https://github.com/efg-hermes-younit/younit-python/blob/master/docs/mcp.md#authentication)
 for server configuration.
@@ -87,6 +87,16 @@ See [`examples/`](https://github.com/efg-hermes-younit/younit-python/tree/master
 **Method naming convention**: unprefixed methods (`buy()`, `sell()`, `positions()`, etc.) operate on stocks. Fund-equivalent methods use an explicit `_fund` suffix (`buy_fund()`, `sell_fund()`, `fund_positions()`, etc.).
 
 ## MCP Server
+
+The server is **read-only by default**: write tools (buy, sell, amend, cancel)
+are registered only when `EFG_MCP_READONLY=false` is set explicitly. The
+`EFG_MCP_*` safety settings can go in the environment or in a `.env` file in
+the server's working directory (environment variables take precedence), just
+like `TRADING_ID` and `API_KEY`. While the
+per-order value cap (`EFG_MCP_MAX_ORDER_VALUE_EGP`, default 1000 EGP) is
+active, market orders without a limit price are rejected.
+
+Daily order limit (EFG_MCP_MAX_DAILY_ORDERS, default 100): the number of orders the MCP server will send to the API per day. Orders blocked by the other safety checks don't count. The count is kept in the server's memory, so it resets at midnight Cairo time and whenever the server restarts. It's meant to stop a runaway AI agent within a session. It isn't an account-wide limit, and it doesn't count orders placed in the Younit app or through the SDK directly.
 
 ```bash
 younit-mcp --transport stdio

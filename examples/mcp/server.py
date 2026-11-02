@@ -25,10 +25,16 @@ Claude Desktop config (~/.config/claude/claude_desktop_config.json):
 
 See examples/mcp/claude_desktop_setup.md for the full configuration guide.
 
-Safety controls:
-- EFG_MCP_READONLY=true disables all write tools (buy, sell, cancel, amend)
-- EFG_MCP_MAX_ORDER_VALUE_EGP caps single order value in EGP
-- EFG_MCP_MAX_DAILY_ORDERS caps total orders per calendar day (UTC)
+Safety settings. Put them in the environment (including the "env" block above)
+or in a .env file in the working directory; environment variables take
+precedence. Invalid values fall back to the defaults.
+- EFG_MCP_READONLY (default: true). The server is read-only; write tools
+  (buy, sell, cancel, amend) exist only when this is exactly "false".
+- EFG_MCP_MAX_ORDER_VALUE_EGP (default: 1000). Caps a single order's value
+  (qty x price) in EGP; 0 disables. While active, market orders (no limit
+  price) are rejected.
+- EFG_MCP_MAX_DAILY_ORDERS (default: 100). Caps orders sent to the API per
+  Cairo calendar day; in memory, so it also resets on restart; 0 disables.
 
 This script starts the server via the console entry point's module
 (equivalent to running `younit-mcp`), so it works without the package
@@ -36,11 +42,8 @@ being installed as an editable/console-script entry point.
 """
 
 import argparse
-import os
 import subprocess
 import sys
-
-os.environ.setdefault("EFG_MCP_READONLY", "true")  # Read-only by default
 
 parser = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter

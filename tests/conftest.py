@@ -6,6 +6,8 @@ No real API calls are made in unit tests.
 
 from __future__ import annotations
 
+import pathlib
+
 import httpx
 import pytest
 import respx
@@ -34,13 +36,18 @@ CLIENT_TOKEN_RESPONSE = {
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _isolate_working_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+    """Run every test from an empty directory so a developer's real .env is never read."""
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def settings() -> Settings:
     """Minimal Settings instance for testing."""
     return Settings(
         trading_id=FAKE_TRADING_ID,
         api_key=FAKE_API_KEY,
-        simulation=True,
     )
 
 

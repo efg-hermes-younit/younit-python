@@ -8,10 +8,10 @@ or any MCP client) can use these tools to:
 - Query mutual funds
 
 Safety settings (all via environment variables):
-- ``EFG_MCP_READONLY=true``        — disables all write tools
+- ``EFG_MCP_READONLY=false``       — REQUIRED to enable write tools; the server is
+                                     read-only unless this is explicitly "false"
 - ``EFG_MCP_MAX_ORDER_VALUE_EGP``  — caps single order value in EGP
 - ``EFG_MCP_MAX_DAILY_ORDERS``     — circuit breaker on daily order count
-- ``EFG_SIMULATION=true``          — uses simulation environment (recommended for setup)
 
 Start with stdio (default for Claude Desktop)::
 
@@ -37,7 +37,6 @@ from younit.exceptions import AuthError, ConfigError, EFGError
 from younit.mcp_server.safety import (
     DailyOrderCounter,
     SafetySettings,
-    check_daily_limit,
     check_order_value,
 )
 from younit.models.streaming import OrderUpdate, SymbolUpdate
@@ -119,6 +118,32 @@ def market_status(market_id: int = 1, timeout_seconds: float = 8.0) -> str:
         "unreachable" if no update arrived at all within the timeout.
     """
     return _get_client().market_status(market_id=market_id, timeout=timeout_seconds)
+
+
+@app.tool()
+def get_safety_settings() -> dict[str, Any]:
+    """Get the MCP server's effective safety settings (read-only; no credentials).
+
+    Use this to find out whether order tools are available and what limits
+    apply before attempting an order.
+
+    Returns:
+        Dict with:
+        - read_only: True if order tools (buy, sell, amend, cancel) are not available
+        - max_order_value_egp: Maximum value (qty x limit price) of one order in EGP.
+          0 means no cap. While the cap is on, market orders are rejected.
+        - max_daily_orders: Maximum orders the server sends per day (Cairo time).
+          0 means no limit.
+        - orders_sent_today: Orders this server has sent today (Cairo time). Resets
+          at midnight Cairo time and when the server restarts.
+    """
+    safety = _get_safety()
+    return {
+        "read_only": safety.readonly,
+        "max_order_value_egp": safety.max_order_value_egp,
+        "max_daily_orders": safety.max_daily_orders,
+        "orders_sent_today": _order_counter.count,
+    }
 
 
 @app.tool()
@@ -565,7 +590,7 @@ def streaming_orders(timeout_seconds: float = 5.0) -> dict[str, Any] | None:
 def _register_write_tools() -> None:
     """Register write tools with the MCP server.
 
-    Called only when EFG_MCP_READONLY is False. In read-only mode, the LLM
+    Called only when EFG_MCP_READONLY is explicitly "false". Otherwise the LLM
     never sees these tools — they are not registered at all.
     """
 
@@ -578,17 +603,20 @@ def _register_write_tools() -> None:
         allowed range, then places the order.
 
         Safety controls apply:
-        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * limit exceeds cap
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * limit exceeds cap.
+          While the cap is active, market orders (no limit) are rejected;
+          a limit price is required.
         - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
-        - EFG_SIMULATION: If true, order goes to paper trading environment
 
         Args:
             symbol: EGX ticker code (e.g. "COMI" for Commercial Intl Bank).
                 Always uppercase. Use search_stocks() to find tickers.
             qty: Number of shares to buy (positive integer, e.g. 100).
-            limit: Limit price in EGP (e.g. 82.5). If omitted, places a
-                market order at the current ask price. For limit orders,
-                the price must be within the stock's allowed range (see quote()).
+            limit: Limit price in EGP (e.g. 82.5). Required while the order
+                value cap is active; if omitted, the order is rejected. (With
+                the cap disabled, omitting it places a market order at the
+                current ask price.) The price must be within the stock's
+                allowed range (see quote()).
 
         Returns:
             Dict with order details: stock_id, operation_type, quantity (shares),
@@ -602,11 +630,10 @@ def _register_write_tools() -> None:
         - Safety limit exceeded
         """
         safety = _get_safety()
+        client = _get_client()
         check_order_value(qty, limit, safety)
-        check_daily_limit(_order_counter, safety)
-        result = _get_client().buy(symbol=symbol, qty=qty, limit=limit)
-        _order_counter.increment()
-        return result.model_dump(mode="json")
+        _order_counter.reserve(safety)
+        return client.buy(symbol=symbol, qty=qty, limit=limit).model_dump(mode="json")
 
     @app.tool()
     def sell(
@@ -617,17 +644,20 @@ def _register_write_tools() -> None:
         Implements the full 3-call order placement flow automatically.
 
         Safety controls apply:
-        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * limit exceeds cap
+        - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * limit exceeds cap.
+          While the cap is active, market orders (no limit) are rejected;
+          a limit price is required.
         - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
-        - EFG_SIMULATION: If true, order goes to paper trading environment
 
         Args:
             symbol: EGX ticker code (e.g. "COMI"). Always uppercase.
                 The client must hold this stock to sell it.
             qty: Number of shares to sell (positive integer). Cannot exceed
                 the quantity held (see position()).
-            limit: Limit price in EGP. If omitted, places a market sell
-                at the current bid price.
+            limit: Limit price in EGP. Required while the order value cap is
+                active; if omitted, the order is rejected. (With the cap
+                disabled, omitting it places a market sell at the current
+                bid price.)
             settlement: Settlement timing, as a friendly string: "t2"
                 (default, normal settlement), "t0" (or its alias
                 "same_day", closes a position bought the same day), or
@@ -644,10 +674,10 @@ def _register_write_tools() -> None:
             price (EGP), is_market_price.
         """
         safety = _get_safety()
+        client = _get_client()
         check_order_value(qty, limit, safety)
-        check_daily_limit(_order_counter, safety)
-        result = _get_client().sell(symbol=symbol, qty=qty, limit=limit, settlement=settlement)
-        _order_counter.increment()
+        _order_counter.reserve(safety)
+        result = client.sell(symbol=symbol, qty=qty, limit=limit, settlement=settlement)
         return result.model_dump(mode="json")
 
     @app.tool()
@@ -660,7 +690,6 @@ def _register_write_tools() -> None:
         Safety controls apply:
         - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
         - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
-        - EFG_SIMULATION: If true, order goes to paper trading environment
 
         Args:
             fund_id: Internal fund identifier (integer). Get from funds().
@@ -672,12 +701,10 @@ def _register_write_tools() -> None:
             Dict with order details: fund_id, operation_type, quantity (units), price.
         """
         safety = _get_safety()
+        client = _get_client()
         check_order_value(qty, price, safety)
-        check_daily_limit(_order_counter, safety)
-        result = _get_client().buy_fund(
-            fund_id=fund_id, qty=qty, price=price, is_ipo_fund=is_ipo_fund
-        )
-        _order_counter.increment()
+        _order_counter.reserve(safety)
+        result = client.buy_fund(fund_id=fund_id, qty=qty, price=price, is_ipo_fund=is_ipo_fund)
         return result.model_dump(mode="json")
 
     @app.tool()
@@ -687,7 +714,6 @@ def _register_write_tools() -> None:
         Safety controls apply:
         - EFG_MCP_MAX_ORDER_VALUE_EGP: Rejects if qty * price exceeds cap
         - EFG_MCP_MAX_DAILY_ORDERS: Rejects if daily order count reached
-        - EFG_SIMULATION: If true, order goes to paper trading environment
 
         Args:
             fund_id: Internal fund identifier (integer). Get from
@@ -700,10 +726,10 @@ def _register_write_tools() -> None:
             Dict with order details: fund_id, operation_type, quantity (units), price.
         """
         safety = _get_safety()
+        client = _get_client()
         check_order_value(qty, price, safety)
-        check_daily_limit(_order_counter, safety)
-        result = _get_client().sell_fund(fund_id=fund_id, qty=qty, price=price)
-        _order_counter.increment()
+        _order_counter.reserve(safety)
+        result = client.sell_fund(fund_id=fund_id, qty=qty, price=price)
         return result.model_dump(mode="json")
 
     @app.tool()
@@ -772,11 +798,47 @@ def _register_write_tools() -> None:
         safety = _get_safety()
         current = client.get_order(order_id)
         effective_qty = qty if qty is not None else current.quantity
-        effective_price = price if price is not None else current.price
-        if effective_qty is not None:
+        # A market order has no price (None or 0), so its value is unknown.
+        effective_price = price if price is not None else (current.price or None)
+        if safety.max_order_value_egp > 0:
+            if effective_qty is None:
+                raise ValueError(
+                    "Cannot verify the amended order value against the MCP server safety "
+                    "cap because the current quantity is unknown. Pass qty explicitly."
+                )
             check_order_value(effective_qty, effective_price, safety)
         success = client.amend_order(order_id, qty=qty, price=price)
         return {"success": success, "order_id": order_id}
+
+
+_WRITE_TOOL_NAMES = (
+    "buy",
+    "sell",
+    "amend_order",
+    "buy_fund",
+    "sell_fund",
+    "cancel_order",
+    "cancel_fund_order",
+)
+
+
+def _remove_write_tools() -> None:
+    for name in _WRITE_TOOL_NAMES:
+        if app._tool_manager.get_tool(name) is not None:
+            app.remove_tool(name)
+
+
+def configure_write_tools(safety: SafetySettings) -> bool:
+    """Register or remove the write tools according to ``safety.readonly``.
+
+    Returns:
+        True if write tools are registered, False if the server is read-only.
+    """
+    if safety.readonly:
+        _remove_write_tools()
+        return False
+    _register_write_tools()
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -800,12 +862,16 @@ Environment variables (required):
   TRADING_ID            Trading identifier
   API_KEY               Public-key authentication secret
 
-Safety settings (optional):
-  EFG_MCP_READONLY             true/false (default: false)
-  EFG_MCP_MAX_ORDER_VALUE_EGP  integer EGP cap per order (default: 1000)
-  EFG_MCP_MAX_DAILY_ORDERS     integer orders per day (default: 100)
-  EFG_SIMULATION               true/false (default: false; use true for setup)
-        """,
+Safety settings (optional; set in the environment or in .env in the working
+directory, environment variables take precedence):
+  EFG_MCP_READONLY             default: true (read-only). Write tools (buy, sell,
+                               amend, cancel) are registered ONLY when this is
+                               explicitly set to "false"; any other value or unset
+                               keeps the server read-only
+  EFG_MCP_MAX_ORDER_VALUE_EGP  integer EGP cap per order (default: 1000; 0 disables).
+                               While active, market orders (no limit price) are rejected
+  EFG_MCP_MAX_DAILY_ORDERS  orders per day (default: 100); resets at midnight Cairo time and on server restart
+        """,  # noqa: E501
     )
     parser.add_argument(
         "--transport",
@@ -821,7 +887,7 @@ Safety settings (optional):
     )
     args = parser.parse_args()
 
-    # Initialise safety settings from env vars
+    # Initialise safety settings (environment, then .env)
     _safety = SafetySettings()
 
     # Initialise SDK client (reads credentials from env vars). On failure the
@@ -846,12 +912,11 @@ Safety settings (optional):
         print(_startup_error, file=sys.stderr)
 
     # Register write tools only when not in read-only mode
-    if not _safety.readonly:
-        _register_write_tools()
-    else:
+    if not configure_write_tools(_safety):
         print(
-            "EFG MCP server running in READ-ONLY mode. "
-            "Write tools (buy, sell, cancel, amend) are not available.",
+            "EFG MCP server running in READ-ONLY mode (default). "
+            "Write tools (buy, sell, cancel, amend) are not available; "
+            "set EFG_MCP_READONLY=false to enable them.",
             file=sys.stderr,
         )
 

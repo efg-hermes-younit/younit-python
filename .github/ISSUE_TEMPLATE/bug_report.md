@@ -29,10 +29,11 @@ from younit import Client
 
 ## Environment
 
-- `younit` version:
+- `younit-sdk` version:
 - Python version:
 - OS:
-- Simulation mode (`EFG_SIMULATION`):
+- How you're using it (SDK script / `younit-mcp` / Claude Desktop extension / AI client demo):
+- MCP safety settings, if relevant (read-only, max order value, max daily orders):
 
 ## Additional Context
 
@@ -40,5 +41,5 @@ from younit import Client
 
 ---
 
-**Security reminder:** Do NOT include credentials, tokens, account IDs, or trading UUIDs in bug reports.
-If this is a security vulnerability, please follow our [security policy](../SECURITY.md) instead of filing a public issue.
+**Security reminder:** Do NOT include your API key, Trading ID, tokens, account details or your `.env` file in bug reports.
+If this is a security vulnerability, don't open a public issue: follow our [security policy](https://github.com/efg-hermes-younit/younit-python/blob/master/SECURITY.md) or email support@younit.io.

@@ -8,7 +8,6 @@ Example::
     # From environment (e.g. in a .env file or shell):
     # TRADING_ID=your-trading-id
     # API_KEY=your-api-key
-    # EFG_SIMULATION=true
 
     from younit.config import Settings
 
@@ -18,14 +17,15 @@ Example::
     settings = Settings(
         trading_id="...",
         api_key="...",
-        simulation=True,
     )
 """
 
 from __future__ import annotations
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from younit.exceptions import ConfigError
 
 # Confirmed production hosts. Hardcoded intentionally — no longer configurable
 # via env var or public constructor argument. For internal/staging use only,
@@ -72,11 +72,8 @@ class Settings(BaseSettings):
     simulation: bool = Field(
         default=False,
         description=(
-            "When True, sets X-Server-Select: simulation on all requests. "
-            "Strongly recommended for initial setup and testing. "
-            "Does NOT affect streaming: streaming always connects to the single "
-            "production host regardless of this flag. "
-            "Set EFG_SIMULATION=true."
+            "Temporarily disabled in this version while simulation mode is being "
+            "verified: any true value raises ConfigError."
         ),
     )
     company_code: str = Field(
@@ -161,7 +158,18 @@ class Settings(BaseSettings):
             raise ValueError(f"accept_language must be 'en' or 'ar', got {v!r}")
         return v
 
+    @model_validator(mode="after")
+    def reject_simulation(self) -> Settings:
+        """Fail loudly: simulation mode is temporarily disabled pending verification."""
+        if self.simulation:
+            raise ConfigError(
+                "EFG_SIMULATION is temporarily disabled in this version while "
+                "simulation mode is being verified. "
+                "Remove EFG_SIMULATION to continue."
+            )
+        return self
+
     @property
     def server_select_header(self) -> str:
-        """Return the X-Server-Select header value based on simulation mode."""
+        """Return the X-Server-Select header value."""
         return "simulation" if self.simulation else "real"

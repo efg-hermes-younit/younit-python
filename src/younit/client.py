@@ -10,7 +10,6 @@ Example::
     client = Client(
         trading_id="your-trading-id",
         api_key="your-api-key",
-        simulation=True,   # Always start in simulation mode
     )
 
     quote = client.quote("COMI")
@@ -119,7 +118,8 @@ class Client:
     Args:
         trading_id: Trading identifier. Overrides ``TRADING_ID``.
         api_key: Authentication secret. Overrides ``API_KEY``.
-        simulation: If True, uses simulation mode. Overrides ``EFG_SIMULATION``.
+        simulation: Temporarily disabled in this version while simulation mode
+            is being verified; passing True raises ``ConfigError``. Leave unset.
         company_code: Company code header. Overrides ``EFG_COMPANY_CODE``.
         accept_language: Language header. Overrides ``EFG_ACCEPT_LANGUAGE``.
         timeout_seconds: Request timeout. Overrides ``EFG_TIMEOUT_SECONDS``.
@@ -130,7 +130,8 @@ class Client:
             Defaults to False (loads on construction).
 
     Raises:
-        ConfigError: If required credentials are missing.
+        ConfigError: If required credentials are missing, or if the temporarily
+            disabled ``simulation`` setting is enabled.
         InvalidCredentials: If TRADING_ID or API_KEY is rejected.
         AuthError: On any other authentication failure.
     """

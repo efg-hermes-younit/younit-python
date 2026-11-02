@@ -31,15 +31,18 @@ directly).
 
 ## Safety Controls
 
+Set these in the `env` block above, in the environment, or in `.env` in the
+server's working directory (environment variables take precedence).
+
 | Variable | Default | Description |
 |---|---|---|
-| `EFG_MCP_READONLY` | `false` | Set `true` to disable all write tools (buy, sell, cancel, amend). **Recommended for most users.** |
-| `EFG_MCP_MAX_ORDER_VALUE_EGP` | `1000` | Maximum single order value in EGP. Set `0` to disable. |
-| `EFG_MCP_MAX_DAILY_ORDERS` | `100` | Maximum orders placed per calendar day (UTC). Set `0` to disable. |
+| `EFG_MCP_READONLY` | `true` | The server is **read-only by default**. Write tools (buy, sell, cancel, amend, fund orders) are registered only when this is explicitly set to `false`; unset, empty, or any other value keeps them off. |
+| `EFG_MCP_MAX_ORDER_VALUE_EGP` | `1000` | Maximum single order value (qty × price) in EGP, applied to `buy`, `sell`, `amend_order`, `buy_fund` and `sell_fund`. While the cap is active, market orders (no limit price) are rejected — a limit price is required. Set `0` to disable. |
+| `EFG_MCP_MAX_DAILY_ORDERS` | `100` | Maximum orders sent to the API per Cairo calendar day; in-memory, so it also resets on server restart. Set `0` to disable. |
 
-## Available Tools (Read-Only Mode)
+## Available Tools (Read-Only Mode, the default)
 
-When `EFG_MCP_READONLY=true`, Claude can:
+By default (`EFG_MCP_READONLY` unset or not `false`), Claude can:
 
 **Market data:**
 - `quote` — Current price snapshot (last, bid, ask, min/max, change)
@@ -53,6 +56,7 @@ When `EFG_MCP_READONLY=true`, Claude can:
 **Real-time streaming snapshots:**
 - `streaming_quote` — Live price snapshot via Lightstreamer (more current than `quote`)
 - `streaming_orders` — Live order status snapshot (use after placing an order)
+- `get_safety_settings` — The server's effective safety settings (read-only flag, order value cap, daily limit, orders sent today)
 
 **Portfolio and account:**
 - `account_info` — Account details and profile IDs
@@ -70,10 +74,10 @@ When `EFG_MCP_READONLY=true`, Claude can:
 
 ## Additional Tools (Write Mode, `EFG_MCP_READONLY=false`)
 
-- `buy` — Place a limit or market buy order
-- `sell` — Place a limit or market sell order
+- `buy` — Place a buy order (a limit price is required while the order value cap is active)
+- `sell` — Place a sell order (a limit price is required while the order value cap is active)
 - `cancel_order` — Cancel an open order
-- `amend_order` — Modify quantity and/or price of an open order
+- `amend_order` — Modify quantity and/or price of an open order (the new qty × price is checked against the cap)
 
 ## Security Notes
 
