@@ -45,13 +45,14 @@ the full configuration block.
 
 ## Safety Controls
 
-All safety controls are configured via environment variables — never in code.
+All safety controls are configured via environment variables or `.env` in the
+server's working directory (environment variables take precedence) — never in code.
 
 | Variable | Default | Description |
 |---|---|---|
-| `EFG_MCP_READONLY` | `false` | Disable all write tools (recommended for most users) |
-| `EFG_MCP_MAX_ORDER_VALUE_EGP` | `1000` | Max single order value in EGP (0 = disabled) |
-| `EFG_MCP_MAX_DAILY_ORDERS` | `100` | Max orders per calendar day UTC (0 = disabled) |
+| `EFG_MCP_READONLY` | `true` | Read-only by default: write tools are registered only when explicitly set to `false` (any other value, or unset, keeps them off) |
+| `EFG_MCP_MAX_ORDER_VALUE_EGP` | `1000` | Max single order value (qty × price) in EGP, applied to `buy`, `sell`, `amend_order`, `buy_fund`, `sell_fund` (0 = disabled). While active, market orders (no limit price) are rejected. |
+| `EFG_MCP_MAX_DAILY_ORDERS` | `100` | Max orders sent to the API per Cairo calendar day; in-memory, so it also resets on server restart (0 = disabled) |
 
 ## Available Tools
 
@@ -82,15 +83,16 @@ All safety controls are configured via environment variables — never in code.
 | `historical_prices` | OHLCV candle data (Day / Week / Month / Year) |
 | `streaming_quote` | Live price snapshot via the Lightstreamer feed |
 | `streaming_orders` | Live order status snapshot via the ActiveOrders stream |
+| `get_safety_settings` | The server's effective safety settings: `read_only`, `max_order_value_egp`, `max_daily_orders`, `orders_sent_today` (no credentials) |
 
 ### Write Tools (only when `EFG_MCP_READONLY=false`)
 
 | Tool | Description |
 |---|---|
-| `buy` | Place a limit or market buy order |
-| `sell` | Place a limit or market sell order (t2/t0/t1 settlement via `settlement`) |
+| `buy` | Place a limit buy order (a limit price is required while the value cap is active) |
+| `sell` | Place a limit sell order (limit price required while the value cap is active; t2/t0/t1 settlement via `settlement`) |
 | `cancel_order` | Cancel an open order |
-| `amend_order` | Modify quantity/price of an open order |
+| `amend_order` | Modify quantity/price of an open order (new qty × price is checked against the cap) |
 | `buy_fund` | Place a buy order for a mutual fund |
 | `sell_fund` | Place a sell (redemption) order for a mutual fund |
 | `cancel_fund_order` | Cancel an open fund order |
