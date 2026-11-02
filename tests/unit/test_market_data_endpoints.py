@@ -36,7 +36,6 @@ def _make_client(respx_mock) -> Client:
     return Client(
         trading_id=conf.FAKE_TRADING_ID,
         api_key=conf.FAKE_API_KEY,
-        simulation=True,
         lazy_auth=True,
         lazy_symbols=True,
         _base_url_override=FAKE_BASE_URL,
@@ -85,6 +84,39 @@ class TestQuote:
         # which always forwards the resolved ticker as `symbol`.
         quote = client.quote("COMI")
         assert quote.symbol == "COMI"
+
+    def test_quote_defaults_missing_allow_flags_to_false(self, respx_mock):
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-trading-info/1/101").mock(
+            return_value=httpx.Response(200, json={"data": {"securityID": 101, "last": 65.5}})
+        )
+        client = _make_client(respx_mock)
+        quote = client.quote("COMI")
+        assert quote.is_intraday is False
+        assert quote.is_tplus1 is False
+
+    def test_quote_defaults_null_allow_flags_to_false(self, respx_mock):
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-trading-info/1/101").mock(
+            return_value=httpx.Response(
+                200, json={"data": {"last": 65.5, "allowIntraDay": None, "allowTPlus1": None}}
+            )
+        )
+        client = _make_client(respx_mock)
+        quote = client.quote("COMI")
+        assert quote.is_intraday is False
+        assert quote.is_tplus1 is False
+
+    def test_quote_coerces_string_allow_flags(self, respx_mock):
+        # "false" must stay False via pydantic coercion (bool("false") would be True).
+        respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-trading-info/1/101").mock(
+            return_value=httpx.Response(
+                200,
+                json={"data": {"last": 65.5, "allowIntraDay": "false", "allowTPlus1": "true"}},
+            )
+        )
+        client = _make_client(respx_mock)
+        quote = client.quote("COMI")
+        assert quote.is_intraday is False
+        assert quote.is_tplus1 is True
 
     def test_quote_returns_empty_quote_when_data_is_none(self, respx_mock):
         respx_mock.get(f"{FAKE_BASE_URL}/api/stocks/stock-trading-info/1/101").mock(

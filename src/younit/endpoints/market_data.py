@@ -113,8 +113,8 @@ def get_stock_trading_info(
         data.setdefault("stockId", data.get("securityID"))
         data.setdefault("stockName", data.get("securityName"))
         data.setdefault("marketId", data.get("marketID"))
-        data.setdefault("isIntraday", data.get("allowIntraDay"))
-        data.setdefault("isTPlus1", data.get("allowTPlus1"))
+        data.setdefault("isIntraday", data.get("allowIntraDay") or False)
+        data.setdefault("isTPlus1", data.get("allowTPlus1") or False)
         # Use the caller-provided symbol if available; otherwise derive from reuterID
         if symbol:
             data["symbol"] = symbol
