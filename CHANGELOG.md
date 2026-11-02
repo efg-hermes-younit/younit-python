@@ -9,6 +9,35 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+---
+
+## [0.1.1] - 2026-11-02
+
+### Security
+- MCP server: the per-order value cap (`EFG_MCP_MAX_ORDER_VALUE_EGP`) now applies to market orders. While the cap is on, orders without a limit price are rejected. `amend_order` now checks the new quantity x price. Reported privately by an external researcher.
+- MCP server: orders with zero, negative or non-numeric quantity or price are rejected.
+- MCP server: order tool descriptions no longer tell the AI that orders go to a paper-trading environment.
+- `EFG_SIMULATION` is temporarily disabled while simulation mode is being verified; setting it to true now stops startup (SDK, MCP server and AI demos).
+
+### Changed
+- MCP server is read-only by default. Order tools are available only when `EFG_MCP_READONLY=false`.
+- MCP safety settings can now be set in `.env` (environment variables take precedence). Invalid or negative limits fall back to the defaults; decimal values round down.
+- The daily order limit resets at midnight Cairo time and is enforced atomically.
+- AI client demos: the server receives only the settings it needs (LLM provider keys are no longer passed to it). Read-only vs trading is set by `READ_ONLY` in `_mcp_bridge.py`.
+- Claude Desktop extension: new "Max orders per day" setting; "Max order value" defaults to 1000. After changing the extension's settings, quit Claude Desktop from the system tray and reopen it.
+
+### Added
+- `get_safety_settings` MCP tool, showing the effective safety settings.
+
+### Fixed
+- `quote()` no longer fails when the API omits `allowIntraDay` or `allowTPlus1`.
+
+---
+
+## [0.1.0] - 2026-10-30
+
+Initial public release.
+
 ### Changed - Breaking
 - Authentication now uses TRADING_ID and API_KEY via the public-keys token endpoint; EFG_PARTNER_ID, EFG_PARTNER_SECRET and EFG_TRADING_UUID are removed.
 - Removed obsolete identity-host and OAuth-scope configuration. REST hosts
@@ -23,7 +52,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - MCP server with configurable safety controls
 - Structured logging with mandatory credential redaction
 - GitHub Actions CI/CD workflows
-- `top_movers` MCP tool wrapping `Client.get_top_movers()` — returns the full
+- `top_movers` MCP tool wrapping `Client.get_top_movers()` - returns the full
   tradeable-stock universe sorted by `change_pct` (gainers first, losers
   last), computed live over the streaming feed the same way the official
   EFG app does it.
@@ -35,20 +64,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `buy`/`sell`). MCP server now registers 30 tools total (23 read + 7 write).
 
 ### Fixed
+- MCP server logs to stderr only; clear error when authentication fails at startup.
 - MCP `sell` tool was missing the `settlement` parameter entirely, silently
-  hardcoding the SDK's `"t2"` default — same-day (T0) sells (incl. limit
+  hardcoding the SDK's `"t2"` default - same-day (T0) sells (incl. limit
   orders, fixed earlier in `Client.sell()`/`place_order()`) were unreachable
   via MCP even though the underlying SDK already supported them. The tool
   now accepts `settlement="t0"|"t1"|"t2"` and passes it through to
   `Client.sell()`. `list_stocks`/`trending_stocks`/`search_stocks` MCP tool
   docstrings also updated to document `security_class_name` and
-  `is_same_day_eligible` — these fields were already present in the
+  `is_same_day_eligible` - these fields were already present in the
   returned data (full `StockInfo.model_dump()`) but undocumented, so an AI
   agent reading only the tool description wouldn't know to check them
   before attempting a same-day order.
 - `top_gainers` / `top_losers` MCP tools. The backend team confirmed the
   underlying REST endpoint (`get_top_gainers_losers`) is not a dedicated
-  server-side computation and may return incomplete/stale data — replaced
+  server-side computation and may return incomplete/stale data - replaced
   by the `top_movers` MCP tool above so an AI agent can no longer pick the
   unreliable option. The SDK methods `Client.top_gainers()`/
   `Client.top_losers()` are unaffected and remain available for direct SDK use.
@@ -56,19 +86,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   + `certs/efghermesone-identity.pem`) that was in place from ~2026-08 to
   2026-09-13 to route around what appeared to be a broken certificate chain
   on `tradingapis.efghermesone.com`. Live verification on 2026-09-13 confirmed
-  the server now sends a complete, valid chain (leaf → Thawte intermediate →
+  the server now sends a complete, valid chain (leaf -> Thawte intermediate ->
   DigiCert root) and that a full real auth + API call flow succeeds
   end-to-end under standard system-trust TLS verification, so the pin (and
   its `SECLEVEL=1` cipher downgrade) was removed. The retired cert is kept
   at `diagnostics/efghermesone-identity-pinned-cert.pem` as a rollback
   safety net.
 
----
-
-## [0.1.0] — (planned)
-
-Initial public release.
-
-- MCP server logs to stderr only; clear error when authentication fails at startup
-
-[Unreleased]: https://github.com/efg-hermes-younit/younit-python/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/efg-hermes-younit/younit-python/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/efg-hermes-younit/younit-python/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/efg-hermes-younit/younit-python/releases/tag/v0.1.0
